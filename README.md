@@ -22,6 +22,15 @@
 
 ## 3 分钟快速开始（推荐）
 
+### 桌面版开箱即用（无需手动安装依赖）
+
+如果你使用本仓库的两个桌面应用（`tauri/` 和 `electron/`），可以直接通过 GUI 完成转换与压缩，**不需要手动安装** `fbx2gltf` 和 `gltfpack`。
+
+- Tauri 版说明见：[`tauri/README.md`](tauri/README.md)
+- Electron 版说明见：[`electron/README.md`](electron/README.md)
+
+命令行脚本（`.sh` / `.bat` / `make` / `just`）场景下，才需要自行安装这两个命令行工具。
+
 ### 1) 准备依赖
 
 需要命令行可直接运行：
@@ -99,7 +108,7 @@ just final /path/to/fbx /path/to/final_glb
 
 当前 `paths` 包括：`tauri/**`、`README.md`、`batch_fbx2glb_final.sh`、`batch_fbx2glb.sh`、`batch_gltfpack.sh`、`batch_fbx2glb_final.bat`、`batch_fbx2glb.bat`、`batch_gltfpack.bat`、`Makefile`、`justfile`、`fbx_to_glb.py`、`.github/workflows/tauri-multi-platform.yml`。例如只改 `electron/` 时不会自动触发。
 
-桌面版开发与嵌入 `fbx2gltf` / `gltfpack` 的细节见 [`tauri/README.md`](tauri/README.md)。
+桌面版开发与打包（含内置 `fbx2gltf` / `gltfpack`）细节见 [`tauri/README.md`](tauri/README.md) 与 [`electron/README.md`](electron/README.md)。
 
 ## 三种工作流怎么选
 
