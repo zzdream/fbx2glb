@@ -1,0 +1,25 @@
+# OS files
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Node dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Common env files
+.env
+.env.*
+!.env.example
+
+# Temporary/cache
+.cache/
+.pnpm-store/
+tmp/
+temp/

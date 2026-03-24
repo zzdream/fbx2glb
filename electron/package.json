@@ -1,0 +1,100 @@
+{
+  "name": "fbx-glb-electron-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "FBX -> GLB converter desktop app built with Electron",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:1421 && env -u ELECTRON_RUN_AS_NODE electron .\"",
+    "dev:web": "vite",
+    "dev:electron": "wait-on tcp:1421 && env -u ELECTRON_RUN_AS_NODE electron .",
+    "build:electron": "vite build --mode electron",
+    "build:mac": "rm -rf build/* && pnpm run build:electron && electron-builder --mac --arm64 --x64",
+    "build:linux": "pnpm run build:electron && ELECTRON_CACHE=~/.cache/electron ELECTRON_SKIP_DOWNLOAD=true electron-builder --linux --x64",
+    "build:win": "pnpm run build:electron && ELECTRON_CACHE=~/.cache/electron ELECTRON_SKIP_DOWNLOAD=true electron-builder --windows --x64",
+    "start": "env -u ELECTRON_RUN_AS_NODE electron ."
+  },
+  "build": {
+    "appId": "com.easylink.fbxglb.electron",
+    "productName": "FBX2GLB",
+    "directories": {
+      "output": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "main.cjs",
+      "preload.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../batch_fbx2glb_final.sh",
+        "to": "batch_fbx2glb_final.sh"
+      },
+      {
+        "from": "../batch_fbx2glb.sh",
+        "to": "batch_fbx2glb.sh"
+      },
+      {
+        "from": "../batch_gltfpack.sh",
+        "to": "batch_gltfpack.sh"
+      },
+      {
+        "from": "../batch_fbx2glb_final.bat",
+        "to": "batch_fbx2glb_final.bat"
+      },
+      {
+        "from": "../batch_fbx2glb.bat",
+        "to": "batch_fbx2glb.bat"
+      },
+      {
+        "from": "../batch_gltfpack.bat",
+        "to": "batch_gltfpack.bat"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "extraResources": [
+        {
+          "from": "bin-darwin-arm64",
+          "to": "bin-darwin-arm64"
+        },
+        {
+          "from": "bin-darwin-x64",
+          "to": "bin-darwin-x64"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "extraResources": [
+        {
+          "from": "bin-win-x64",
+          "to": "bin-win-x64"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "extraResources": [
+        {
+          "from": "bin-linux-x64",
+          "to": "bin-linux-x64"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "vite": "^5.4.0",
+    "wait-on": "^8.0.3"
+  }
+}

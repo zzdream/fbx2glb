@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FBX -> GLB 转换器（Electron）</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>FBX -> GLB 转换器</h1>
+      <p class="desc">选择目录后点击开始即可</p>
+
+      <section class="card">
+        <label for="inputDir">输入目录（FBX）</label>
+        <div class="row">
+          <input id="inputDir" type="text" placeholder="请选择输入目录" readonly />
+          <button id="pickInputBtn">选择</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <label for="outputDir">输出目录（GLB）</label>
+        <div class="row">
+          <input id="outputDir" type="text" placeholder="请选择输出目录" readonly />
+          <button id="pickOutputBtn">选择</button>
+        </div>
+      </section>
+
+      <section class="actions">
+        <button id="startBtn" class="primary">开始转换</button>
+      </section>
+
+      <section class="card">
+        <label for="log">执行日志</label>
+        <textarea id="log" readonly></textarea>
+      </section>
+    </main>
+  </body>
+</html>

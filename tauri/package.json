@@ -1,0 +1,24 @@
+{
+  "name": "fbx-glb-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:clean": "node scripts/clean-bundle.mjs",
+    "tauri:build:mac": "node scripts/tauri-build.mjs --clean --target universal-apple-darwin",
+    "tauri:build:linux": "node scripts/tauri-build.mjs --clean --target x86_64-unknown-linux-gnu",
+    "tauri:build:win": "node scripts/tauri-build.mjs --clean --target x86_64-pc-windows-msvc"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "vite": "^5.4.0"
+  }
+}
