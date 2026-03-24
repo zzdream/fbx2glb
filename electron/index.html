@@ -35,6 +35,22 @@
         <label for="log">执行日志</label>
         <textarea id="log" readonly></textarea>
       </section>
+
+      <section class="card">
+        <label for="glbFileInput">GLB 模型预览</label>
+        <div class="row">
+          <input id="glbFilePath" type="text" placeholder="请选择本地 .glb 文件" readonly />
+          <button id="pickGlbBtn">选择 GLB</button>
+          <button id="pickGlbFolderBtn">选择文件夹</button>
+        </div>
+        <input id="glbFileInput" type="file" accept=".glb,model/gltf-binary" hidden />
+        <input id="glbFolderInput" type="file" accept=".glb,model/gltf-binary" webkitdirectory directory multiple hidden />
+        <div id="previewStatus" class="preview-status">未加载模型</div>
+        <div class="preview-shell">
+          <div id="previewCanvas" class="preview-canvas"></div>
+          <button id="toggleFullscreenBtn" class="preview-fs-btn">全屏预览</button>
+        </div>
+      </section>
     </main>
   </body>
 </html>

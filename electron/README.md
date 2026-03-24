@@ -5,6 +5,7 @@
 - 选择输入目录（FBX）
 - 选择输出目录（GLB）
 - 一键执行仓库根目录的 `batch_fbx2glb_final.sh`（Windows 打包版使用 `batch_fbx2glb_final.bat`）
+- 支持选择本地 `.glb` 文件并在界面中预览模型（可旋转/缩放）
 - 在界面中展示转换日志
 
 ## 环境要求
