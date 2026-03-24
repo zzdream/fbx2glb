@@ -1,58 +1,57 @@
 import "./style.css";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { setupConversionActions } from "./modules/conversion.js";
+import { ModelPreviewer } from "./modules/modelPreviewer.js";
 
 const inputEl = document.querySelector("#inputDir");
 const outputEl = document.querySelector("#outputDir");
+const modeInputs = document.querySelectorAll('input[name="convertMode"]');
 const logEl = document.querySelector("#log");
 const pickInputBtn = document.querySelector("#pickInputBtn");
 const pickOutputBtn = document.querySelector("#pickOutputBtn");
 const startBtn = document.querySelector("#startBtn");
+const pickGlbBtn = document.querySelector("#pickGlbBtn");
+const pickGlbFolderBtn = document.querySelector("#pickGlbFolderBtn");
+const glbFileInputEl = document.querySelector("#glbFileInput");
+const glbFolderInputEl = document.querySelector("#glbFolderInput");
+const glbFilePathEl = document.querySelector("#glbFilePath");
+const previewStatusEl = document.querySelector("#previewStatus");
+const previewCanvasEl = document.querySelector("#previewCanvas");
+const toggleFullscreenBtn = document.querySelector("#toggleFullscreenBtn");
 
-function appendLog(line) {
-  logEl.value += `${line}\n`;
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-function setRunning(running) {
-  startBtn.disabled = running;
-  pickInputBtn.disabled = running;
-  pickOutputBtn.disabled = running;
-  startBtn.textContent = running ? "转换中..." : "开始转换";
-}
-
-pickInputBtn.addEventListener("click", async () => {
-  const selected = await open({ directory: true, multiple: false });
-  if (typeof selected === "string" && selected.length > 0) {
-    inputEl.value = selected;
-  }
+setupConversionActions({
+  inputEl,
+  outputEl,
+  modeInputs,
+  logEl,
+  pickInputBtn,
+  pickOutputBtn,
+  startBtn
 });
 
-pickOutputBtn.addEventListener("click", async () => {
-  const selected = await open({ directory: true, multiple: false });
-  if (typeof selected === "string" && selected.length > 0) {
-    outputEl.value = selected;
-  }
+const previewer = new ModelPreviewer({
+  previewCanvasEl,
+  previewStatusEl,
+  glbFilePathEl,
+  toggleFullscreenBtn
 });
 
-startBtn.addEventListener("click", async () => {
-  const inputDir = inputEl.value.trim();
-  const outputDir = outputEl.value.trim();
+pickGlbBtn.addEventListener("click", () => {
+  glbFileInputEl.click();
+});
 
-  if (!inputDir || !outputDir) {
-    appendLog("请先选择输入目录和输出目录。");
+pickGlbFolderBtn.addEventListener("click", () => {
+  glbFolderInputEl.click();
+});
+
+glbFileInputEl.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) {
     return;
   }
+  await previewer.loadGlbFiles([file]);
+});
 
-  setRunning(true);
-  appendLog("开始执行转换任务...");
-
-  try {
-    const result = await invoke("run_conversion", { inputDir, outputDir });
-    appendLog(result);
-  } catch (error) {
-    appendLog(`执行失败: ${String(error)}`);
-  } finally {
-    setRunning(false);
-  }
+glbFolderInputEl.addEventListener("change", async (event) => {
+  const files = ModelPreviewer.getGlbFiles(event.target.files);
+  await previewer.loadGlbFiles(files);
 });

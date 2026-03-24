@@ -15,8 +15,9 @@ fn repo_root_from_current_dir() -> Result<PathBuf, String> {
 
     // 向上遍历目录，直到找到转换脚本作为"仓库根目录"标记。
     loop {
-        let marker = dir.join("batch_fbx2glb_final.sh");
-        if marker.exists() {
+        let marker_fbx = dir.join("batch_fbx2glb_final.sh");
+        let marker_glb = dir.join("batch_gltfpack.sh");
+        if marker_fbx.exists() || marker_glb.exists() {
             return Ok(dir);
         }
 
@@ -26,11 +27,16 @@ fn repo_root_from_current_dir() -> Result<PathBuf, String> {
         }
     }
 
-    Err("无法定位仓库根目录：未找到 batch_fbx2glb_final.sh".to_string())
+    Err("无法定位仓库根目录：未找到 batch_fbx2glb_final.sh / batch_gltfpack.sh".to_string())
 }
 
 #[cfg(not(target_os = "windows"))]
-fn run_unix_script(app: &tauri::AppHandle, input_dir: &str, output_dir: &str) -> Result<String, String> {
+fn run_unix_script(
+    app: &tauri::AppHandle,
+    input_dir: &str,
+    output_dir: &str,
+    mode: &str,
+) -> Result<String, String> {
     // 生产环境：脚本随应用一起打包到 `src-tauri/resources`，macOS 在 `.app/Contents/Resources`。
     // 开发环境：回退到仓库根目录（通过找 `batch_fbx2glb_final.sh` 标记）。
     let resource_dir = app
@@ -38,15 +44,21 @@ fn run_unix_script(app: &tauri::AppHandle, input_dir: &str, output_dir: &str) ->
         .resource_dir()
         .map_err(|e| format!("获取资源目录失败: {e}"))?;
 
+    let script_name = if mode == "glb_compress_only" {
+        "batch_gltfpack.sh"
+    } else {
+        "batch_fbx2glb_final.sh"
+    };
+
     let (script_path, use_bundled_resources) = {
-        let candidate_direct = resource_dir.join("batch_fbx2glb_final.sh");
-        let candidate_nested = resource_dir.join("resources/batch_fbx2glb_final.sh");
+        let candidate_direct = resource_dir.join(script_name);
+        let candidate_nested = resource_dir.join(format!("resources/{script_name}"));
         if candidate_direct.exists() {
             (candidate_direct, true)
         } else if candidate_nested.exists() {
             (candidate_nested, true)
         } else {
-            (repo_root_from_current_dir()?.join("batch_fbx2glb_final.sh"), false)
+            (repo_root_from_current_dir()?.join(script_name), false)
         }
     };
 
@@ -110,14 +122,21 @@ fn run_unix_script(app: &tauri::AppHandle, input_dir: &str, output_dir: &str) ->
 }
 
 #[tauri::command]
-fn run_conversion(app: tauri::AppHandle, input_dir: String, output_dir: String) -> Result<String, String> {
+fn run_conversion(
+    app: tauri::AppHandle,
+    input_dir: String,
+    output_dir: String,
+    mode: Option<String>,
+) -> Result<String, String> {
     if input_dir.trim().is_empty() || output_dir.trim().is_empty() {
         return Err("输入和输出目录不能为空".to_string());
     }
+    let selected_mode = mode.unwrap_or_else(|| "fbx_to_glb_compress".to_string());
 
     #[cfg(target_os = "windows")]
     {
         let _ = app;
+        let _ = selected_mode;
         Err(
             "当前 Windows 版本仍通过 bash 脚本流程预留；请使用 macOS / Linux 构建的安装包，或在 WSL 中运行仓库根目录的 batch_fbx2glb_final.sh。"
                 .to_string(),
@@ -126,7 +145,7 @@ fn run_conversion(app: tauri::AppHandle, input_dir: String, output_dir: String) 
 
     #[cfg(not(target_os = "windows"))]
     {
-        run_unix_script(&app, &input_dir, &output_dir)
+        run_unix_script(&app, &input_dir, &output_dir, &selected_mode)
     }
 }
 
