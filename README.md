@@ -12,6 +12,9 @@
 | `batch_fbx2glb_final.sh` | **推荐主入口**：一步完成 FBX -> GLB -> gltfpack 压缩（中间产物自动清理） |
 | `batch_fbx2glb.sh` | 仅做 FBX -> GLB 批量转换，递归子目录并保留目录结构 |
 | `batch_gltfpack.sh` | 仅对已有 GLB 做批量压缩，递归子目录并保留目录结构 |
+| `batch_fbx2glb_final.bat` | Windows 版一步流（FBX -> GLB -> 压缩） |
+| `batch_fbx2glb.bat` | Windows 版仅转换（FBX -> GLB） |
+| `batch_gltfpack.bat` | Windows 版仅压缩（已有 GLB -> 压缩） |
 | `Makefile` | 为常用命令提供统一入口（`make final` / `make fbx2glb` / `make pack`） |
 | `justfile` | 与 Makefile 等价（喜欢 `just` 的可用） |
 | `fbx_to_glb.py` | Blender 批量导出脚本（备用方案） |
@@ -41,6 +44,13 @@ command -v gltfpack
 cd /path/to/fbx2glb
 chmod +x batch_fbx2glb_final.sh batch_fbx2glb.sh batch_gltfpack.sh
 ./batch_fbx2glb_final.sh /path/to/fbx /path/to/final_glb
+```
+
+Windows（PowerShell 或 CMD）可使用 `.bat` 版本：
+
+```bat
+cd C:\path\to\fbx2glb
+batch_fbx2glb_final.bat C:\path\to\fbx C:\path\to\final_glb
 ```
 
 说明：
@@ -87,7 +97,7 @@ just final /path/to/fbx /path/to/final_glb
 | **构建内容** | 在 `tauri/` 目录执行多平台 Tauri 打包（macOS universal、Linux x64、Windows x64） |
 | **产物** | 各 job 上传 **Artifacts**，名称形如 `tauri-macos-universal`、`tauri-linux-x64`、`tauri-windows-x64`，内含对应平台的 `bundle` 目录 |
 
-当前 `paths` 包括：`tauri/**`、`README.md`、`batch_fbx2glb_final.sh`、`batch_fbx2glb.sh`、`batch_gltfpack.sh`、`Makefile`、`justfile`、`fbx_to_glb.py`、`.github/workflows/tauri-multi-platform.yml`。例如只改 `electron/` 时不会自动触发。
+当前 `paths` 包括：`tauri/**`、`README.md`、`batch_fbx2glb_final.sh`、`batch_fbx2glb.sh`、`batch_gltfpack.sh`、`batch_fbx2glb_final.bat`、`batch_fbx2glb.bat`、`batch_gltfpack.bat`、`Makefile`、`justfile`、`fbx_to_glb.py`、`.github/workflows/tauri-multi-platform.yml`。例如只改 `electron/` 时不会自动触发。
 
 桌面版开发与嵌入 `fbx2gltf` / `gltfpack` 的细节见 [`tauri/README.md`](tauri/README.md)。
 

@@ -6,9 +6,13 @@ on:
     branches: [ "master", "main" ]
     paths:
       - "tauri/**"
+      - "README.md"
       - "batch_fbx2glb_final.sh"
       - "batch_fbx2glb.sh"
       - "batch_gltfpack.sh"
+      - "batch_fbx2glb_final.bat"
+      - "batch_fbx2glb.bat"
+      - "batch_gltfpack.bat"
       - "Makefile"
       - "justfile"
       - "fbx_to_glb.py"
