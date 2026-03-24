@@ -52,4 +52,3 @@ echo ""
 echo "完成: 成功 $count 个, 失败 $failed 个"
 
 # 示例: ./batch_fbx2glb.sh /path/to/models /path/to/models2
-# ./batch_fbx2glb.sh  /Users/zhanghang/Documents/saimo/project/three-shared/playground/public/models/vehicle /Users/zhanghang/Documents/saimo/project/three-shared/playground/public/models4/vehicle

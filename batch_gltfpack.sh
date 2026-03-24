@@ -53,4 +53,3 @@ echo ""
 echo "完成: 成功 $count 个, 失败 $failed 个"
 
 # 示例: ./batch_gltfpack.sh /path/to/models /path/to/models_compressed
-# ./batch_gltfpack.sh /Users/zhanghang/Documents/saimo/project/three-shared/playground/public/models/vehicle /Users/zhanghang/Documents/saimo/project/three-shared/playground/public/models3/vehicle
