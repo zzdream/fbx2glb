@@ -13,8 +13,10 @@
 
 ## 开发运行
 
+在仓库根目录进入本目录（与 `package.json` 同级）：
+
 ```bash
-cd app
+cd tauri
 pnpm install
 pnpm tauri dev
 ```
@@ -22,7 +24,7 @@ pnpm tauri dev
 ## 打包构建
 
 ```bash
-cd app
+cd tauri
 pnpm install
 pnpm tauri build
 ```
@@ -37,7 +39,7 @@ pnpm tauri:build:win   # Windows x64（NSIS）
 
 ## 打包时嵌入依赖（给开发者）
 
-构建前将对应平台的可执行文件放入 `app/src-tauri/resources/bin/`：
+构建前将对应平台的可执行文件放入 `tauri/src-tauri/resources/bin/`：
 
 | 文件名 | 说明 |
 |--------|------|

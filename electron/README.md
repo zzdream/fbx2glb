@@ -1,6 +1,6 @@
 # FBX -> GLB 转换器（Electron 桌面版）
 
-这是 `app/`（Tauri 版）的 Electron 对应实现，界面与核心功能保持一致：
+这是 `tauri/`（Tauri 版）的 Electron 对应实现，界面与核心功能保持一致：
 
 - 选择输入目录（FBX）
 - 选择输出目录（GLB）

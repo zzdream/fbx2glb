@@ -1,15 +1,15 @@
 
-# fbx_glb
+# fbx2glb
 
 批量把 FBX 转成 GLB，并支持二次压缩（`gltfpack`）。
 
-目标是给模型管线一个稳定、可复用、可脚本化的入口。
+目标是给模型管线一个稳定、可复用、可脚本化的入口。（仓库内部分脚本/包名可能仍出现 `fbx_glb`，与目录 `fbx2glb` 指同一项目。）
 
 ## 目录说明
 
 | 文件 / 目录 | 用途 |
 |-------------|------|
-| [`app/`](app/README.md) | **桌面 GUI（Tauri）**：提供图形界面完成 FBX -> GLB 转换与压缩 |
+| [`tauri/`](tauri/README.md) | **桌面 GUI（Tauri）**：提供图形界面完成 FBX -> GLB 转换与压缩 |
 | [`electron/`](electron/README.md) | **桌面 GUI（Electron）**：与 Tauri 版功能一致的 Electron 实现 |
 | `batch_fbx2glb_final.sh` | **推荐主入口**：一步完成 FBX -> GLB -> gltfpack 压缩（中间产物自动清理） |
 | `batch_fbx2glb.sh` | 仅做 FBX -> GLB 批量转换，递归子目录并保留目录结构 |
@@ -17,6 +17,7 @@
 | `Makefile` | 为常用命令提供统一入口（`make final` / `make fbx2glb` / `make pack`） |
 | `justfile` | 与 Makefile 等价（喜欢 `just` 的可用） |
 | `fbx_to_glb.py` | Blender 批量导出脚本（备用方案） |
+| [`.github/workflows/tauri-multi-platform.yml`](.github/workflows/tauri-multi-platform.yml) | **CI**：推送 `main` / `master` 或手动触发，多平台构建 Tauri 桌面版 |
 
 ## 3 分钟快速开始（推荐）
 
@@ -24,8 +25,10 @@
 
 需要命令行可直接运行：
 
-- `fbx2gltf`
-- `gltfpack`
+- `fbx2gltf`（[FBX2glTF 发布页](https://github.com/facebookincubator/FBX2glTF/releases)，按平台下载后放进 `PATH`，必要时重命名为 `fbx2gltf`）
+- `gltfpack`（[meshoptimizer 发布页](https://github.com/zeux/meshoptimizer/releases)，包内可执行文件通常名为 `gltfpack` / `gltfpack.exe`）
+
+Windows 上请使用对应 `.exe`，并确保安装目录在系统 `PATH` 中，或在终端当前会话里配置好 `PATH`。
 
 可用下面命令检查：
 
@@ -37,7 +40,7 @@ command -v gltfpack
 ### 2) 一步完成转换和压缩
 
 ```bash
-cd /path/to/fbx_glb
+cd /path/to/fbx2glb
 chmod +x batch_fbx2glb_final.sh batch_fbx2glb.sh batch_gltfpack.sh
 ./batch_fbx2glb_final.sh /path/to/fbx /path/to/final_glb
 ```
@@ -75,6 +78,18 @@ just final /path/to/fbx /path/to/final_glb
 # just fbx2glb /path/to/fbx /path/to/raw_glb
 # just pack /path/to/raw_glb /path/to/final_glb
 ```
+
+## CI（GitHub Actions）
+
+工作流文件：[`.github/workflows/tauri-multi-platform.yml`](.github/workflows/tauri-multi-platform.yml)（Actions 里显示为 **Tauri Multi-Platform Build**）。
+
+| 项目 | 说明 |
+|------|------|
+| **何时运行** | 向 `main` 或 `master` **push** 时自动运行；也可在仓库 **Actions** → 选中该工作流 → **Run workflow** 手动触发（`workflow_dispatch`） |
+| **构建内容** | 在 `tauri/` 目录执行多平台 Tauri 打包（macOS universal、Linux x64、Windows x64） |
+| **产物** | 各 job 上传 **Artifacts**，名称形如 `tauri-macos-universal`、`tauri-linux-x64`、`tauri-windows-x64`，内含对应平台的 `bundle` 目录 |
+
+桌面版开发与嵌入 `fbx2gltf` / `gltfpack` 的细节见 [`tauri/README.md`](tauri/README.md)。
 
 ## 三种工作流怎么选
 
@@ -157,8 +172,8 @@ object3D.traverse((child: any) => {
 
 ## 常见报错排查
 
-- `Error: 未找到 fbx2gltf`：先安装 FBX2glTF 并确保在 `PATH`
-- `Error: 未找到 gltfpack`：先安装 meshoptimizer 工具链并确保在 `PATH`
+- `Error: 未找到 fbx2gltf`：从 [FBX2glTF Releases](https://github.com/facebookincubator/FBX2glTF/releases) 安装并确保在 `PATH`
+- `Error: 未找到 gltfpack`：从 [meshoptimizer Releases](https://github.com/zeux/meshoptimizer/releases) 安装并确保在 `PATH`
 - `Failed to parse FBX: .../__MACOSX/...`：`__MACOSX` 和 `._` 开头的文件是 Mac 压缩包元数据，非真实 FBX；脚本已自动排除
 - Linux 下 `GLIBC_2.34 not found` / `GLIBCXX_3.4.30 not found`：官方 gltfpack 预编译包需 glibc 2.34+（约 Ubuntu 22.04+）；老系统请在目标机上从 meshoptimizer 源码编译
 - 输入目录不存在：确认命令参数路径正确（建议用绝对路径）
