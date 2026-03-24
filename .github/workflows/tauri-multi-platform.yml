@@ -58,17 +58,17 @@ jobs:
             libwebkit2gtk-4.1-dev
 
       - name: pnpm install
-        working-directory: app
+        working-directory: tauri
         run: pnpm install --frozen-lockfile
 
       # Windows 需要 icon.ico 生成资源文件，从 icon.png 自动生成
       - name: Generate Windows icon (icon.ico)
         if: runner.os == 'Windows'
-        working-directory: app
+        working-directory: tauri
         run: npx tauri icon src-tauri/icons/icon.png
 
       - name: Build (Tauri)
-        working-directory: app
+        working-directory: tauri
         run: npm run ${{ matrix.npm_script }}
 
       - name: Upload artifacts
@@ -77,5 +77,5 @@ jobs:
           name: tauri-${{ matrix.name }}
           # 当使用 `--target` 构建时，bundle 通常在 `target/<triple>/release/bundle` 下。
           # 用 glob 兜底，避免路径写死导致找不到 artifacts。
-          path: app/src-tauri/target/**/release/bundle
+          path: tauri/src-tauri/target/**/release/bundle
 
