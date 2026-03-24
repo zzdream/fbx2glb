@@ -4,6 +4,7 @@ import { ModelPreviewer } from "./modules/modelPreviewer.js";
 
 const inputEl = document.querySelector("#inputDir");
 const outputEl = document.querySelector("#outputDir");
+const modeInputs = document.querySelectorAll('input[name="convertMode"]');
 const logEl = document.querySelector("#log");
 const pickInputBtn = document.querySelector("#pickInputBtn");
 const pickOutputBtn = document.querySelector("#pickOutputBtn");
@@ -20,6 +21,7 @@ const toggleFullscreenBtn = document.querySelector("#toggleFullscreenBtn");
 setupConversionActions({
   inputEl,
   outputEl,
+  modeInputs,
   logEl,
   pickInputBtn,
   pickOutputBtn,

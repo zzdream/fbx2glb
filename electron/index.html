@@ -12,6 +12,14 @@
       <p class="desc">选择目录后点击开始即可</p>
 
       <section class="card">
+        <label>处理模式</label>
+        <div class="row mode-row">
+          <label><input type="radio" name="convertMode" value="fbx_to_glb_compress" checked /> FBX 转 GLB 并压缩</label>
+          <label><input type="radio" name="convertMode" value="glb_compress_only" /> 仅压缩 GLB 目录</label>
+        </div>
+      </section>
+
+      <section class="card">
         <label for="inputDir">输入目录（FBX）</label>
         <div class="row">
           <input id="inputDir" type="text" placeholder="请选择输入目录" readonly />

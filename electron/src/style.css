@@ -46,6 +46,19 @@ label {
   gap: 8px;
 }
 
+.mode-row {
+  align-items: center;
+  gap: 16px;
+}
+
+.mode-row label {
+  margin-bottom: 0;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 input {
   flex: 1;
   border: 1px solid #d1d5db;

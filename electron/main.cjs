@@ -64,8 +64,15 @@ function getBundledBinDir() {
   return null;
 }
 
-function resolveScriptPath() {
-  const scriptName = process.platform === "win32" ? "batch_fbx2glb_final.bat" : "batch_fbx2glb_final.sh";
+function resolveScriptPath(mode) {
+  const scriptName =
+    process.platform === "win32"
+      ? mode === "glb_compress_only"
+        ? "batch_gltfpack.bat"
+        : "batch_fbx2glb_final.bat"
+      : mode === "glb_compress_only"
+        ? "batch_gltfpack.sh"
+        : "batch_fbx2glb_final.sh";
   const resourceCandidates = [
     path.join(process.resourcesPath, scriptName),
     path.join(process.resourcesPath, "resources", scriptName)
@@ -84,8 +91,8 @@ function resolveScriptPath() {
   };
 }
 
-function runConversionScript(inputDir, outputDir) {
-  const { scriptPath, useBundledResources } = resolveScriptPath();
+function runConversionScript(inputDir, outputDir, mode) {
+  const { scriptPath, useBundledResources } = resolveScriptPath(mode);
 
   if (!fs.existsSync(scriptPath)) {
     throw new Error(`未找到脚本: ${scriptPath}`);
@@ -187,12 +194,13 @@ ipcMain.handle("pick-directory", async () => {
 ipcMain.handle("run-conversion", async (_event, payload) => {
   const inputDir = (payload?.inputDir || "").trim();
   const outputDir = (payload?.outputDir || "").trim();
+  const mode = payload?.mode === "glb_compress_only" ? "glb_compress_only" : "fbx_to_glb_compress";
 
   if (!inputDir || !outputDir) {
     throw new Error("输入和输出目录不能为空");
   }
 
-  return runConversionScript(inputDir, outputDir);
+  return runConversionScript(inputDir, outputDir, mode);
 });
 
 app.whenReady().then(() => {
