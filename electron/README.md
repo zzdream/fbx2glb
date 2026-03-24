@@ -1,15 +1,43 @@
-# FBX -> GLB 转换器（Electron 桌面版）
+# FBX / GLB 处理器（Electron 桌面版）
 
-这是 `tauri/`（Tauri 版）的 Electron 对应实现，界面与核心功能保持一致：
+这是仓库中 `tauri/` 实现的 Electron 对应版本，当前已包含“批处理转换 + 压缩 + 本地预览”完整能力。
 
-- 选择输入目录（FBX）
-- 选择输出目录（GLB）
-- 一键执行仓库根目录的 `batch_fbx2glb_final.sh`（Windows 打包版使用 `batch_fbx2glb_final.bat`）
-- 支持两种处理模式：
-  - `FBX -> GLB -> 压缩`（默认）
-  - `GLB -> 压缩`（直接压缩 GLB 文件夹）
-- 支持选择本地 `.glb` 文件并在界面中预览模型（可旋转/缩放）
-- 在界面中展示转换日志
+## 功能概览
+
+### 1) 批处理转换/压缩（主流程）
+
+支持两种处理模式：
+
+- `FBX -> GLB -> 压缩`（默认）
+- `GLB -> 压缩`（直接压缩 GLB 文件夹）
+
+你只需要选择输入目录和输出目录，点击 `开始转换`，界面会展示脚本执行日志。
+
+对应脚本：
+
+- `FBX -> GLB -> 压缩`：
+  - macOS/Linux: `batch_fbx2glb_final.sh`
+  - Windows: `batch_fbx2glb_final.bat`
+- `GLB -> 压缩`：
+  - macOS/Linux: `batch_gltfpack.sh`
+  - Windows: `batch_gltfpack.bat`
+
+### 2) GLB 本地预览（右侧预览区）
+
+支持以下预览能力：
+
+- 选择单个 `.glb` 文件预览
+- 选择文件夹并批量加载 `.glb`（自动排布）
+- 模型轨道控制：旋转/缩放/平移
+- 全屏预览
+- 自动播放骨骼动画（若模型含 animation clips）
+- 自动相机框选（加载后自动看全模型/模型组）
+
+支持的压缩/扩展格式：
+
+- `KHR_texture_basisu`（`KTX2Loader`）
+- `EXT_meshopt_compression`（`MeshoptDecoder`）
+- Draco 压缩（`DRACOLoader`）
 
 ## 环境要求
 
@@ -30,11 +58,43 @@ pnpm dev
 - Vite 开发服务：`http://localhost:1421`
 - Electron 桌面窗口
 
+## 使用说明
+
+### A. 处理模式（转换/压缩）
+
+1. 在“处理模式”中选择一种：
+   - `FBX 转 GLB 并压缩`
+   - `仅压缩 GLB 目录`
+2. 选择输入目录与输出目录
+3. 点击 `开始转换`
+4. 在“执行日志”中查看进度与结果
+
+提示：
+
+- 当模式切换为“仅压缩 GLB 目录”时，输入目录文案会自动切换为“输入目录（GLB）”。
+- `batch_gltfpack` 支持递归子目录并保留目录结构。
+
+### B. 预览模式（模型查看）
+
+1. 点击 `选择 GLB`：加载单个模型  
+   或点击 `选择文件夹`：批量加载目录内所有 `.glb`
+2. 鼠标交互查看模型：
+   - 左键拖动：旋转
+   - 滚轮：缩放
+   - 右键拖动：平移
+3. 点击预览区右上角 `全屏预览` 可全屏查看
+
 ## 常见问题
 
 - 打包后运行报错 `未找到 fbx2gltf` 或 `未找到 gltfpack`：
   - 说明对应平台的 `bin-*` 目录里缺少 `fbx2gltf` / `gltfpack`（macOS 用 `bin-darwin-*`，Linux 用 `bin-linux-x64`，Windows 用 `bin-win-x64`）。
   - 见下方「准备可执行文件」后重新打包。
+- 选择“仅压缩 GLB 目录”后没有输出：
+  - 请确认输入目录下实际存在 `.glb` 文件（支持递归）。
+  - 请确认终端可执行 `gltfpack`（开发模式）或打包资源中已包含对应平台的 `gltfpack`。
+- 预览时压缩模型加载失败：
+  - 请确认模型使用的压缩扩展是否完整（KTX2 / Meshopt / Draco 资源应与模型一致）。
+  - 先用未压缩 GLB 验证模型内容是否正常，再定位压缩链路问题。
 - Linux 上报错 `GLIBC_2.34 not found` 或 `GLIBCXX_3.4.30 not found`：
   - 官方 gltfpack 预编译包需要较新的 glibc（约 Ubuntu 22.04+）。请在**目标 Linux 系统上**从 [meshoptimizer](https://github.com/zeux/meshoptimizer) 源码编译 gltfpack，替换 `bin-linux-x64/gltfpack` 后重新打包。
 - 报错 `Electron failed to install correctly`：
