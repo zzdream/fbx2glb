@@ -8,5 +8,5 @@ if (fs.existsSync(bundleDir)) {
   fs.rmSync(bundleDir, { recursive: true, force: true });
 }
 
-console.log(`[fbx_glb][clean] removed: ${bundleDir}`);
+console.log(`[fbx2glb][clean] removed: ${bundleDir}`);
 

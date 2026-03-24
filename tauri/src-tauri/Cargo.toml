@@ -1,5 +1,5 @@
 [package]
-name = "fbx_glb_app"
+name = "fbx2glb_app"
 version = "0.1.0"
 description = "Desktop converter for FBX to GLB"
 authors = ["you"]

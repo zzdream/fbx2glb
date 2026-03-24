@@ -1,5 +1,5 @@
 
-# fbx_glb：与 Makefile 等价，需安装 https://github.com/casey/just
+# fbx2glb：与 Makefile 等价，需安装 https://github.com/casey/just
 # 在仓库根目录执行；首次可运行: just init
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]

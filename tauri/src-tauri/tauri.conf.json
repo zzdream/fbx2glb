@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "fbx_glb",
+  "productName": "fbx2glb",
   "version": "0.1.0",
   "identifier": "com.easylink.fbxglb",
   "build": {

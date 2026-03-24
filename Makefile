@@ -1,4 +1,4 @@
-# fbx_glb：脚本编排（在仓库根目录执行 make）
+# fbx2glb：脚本编排（在仓库根目录执行 make）
 SHELL := /bin/bash
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
@@ -24,7 +24,7 @@ ifeq ($(firstword $(MAKECMDGOALS)),pack)
 endif
 
 help:
-	@echo "fbx_glb 工作流（脚本 + Makefile）"
+	@echo "fbx2glb 工作流（脚本 + Makefile）"
 	@echo ""
 	@echo "  make init                         # 一次性：chmod +x 三个批量脚本"
 	@echo "  make check-deps                   # 检查 fbx2gltf、gltfpack 是否在 PATH"
