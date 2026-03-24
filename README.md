@@ -1,7 +1,7 @@
 
 # fbx2glb
 
-批量把 FBX 转成 GLB，并支持二次压缩（`gltfpack`）。
+批量把 FBX 转成 GLB，并支持二次压缩（`gltfpack` 解码更快（比 Draco 更适合实时）现代 Web 推荐方案。）
 
 ## 目录说明
 
@@ -179,6 +179,99 @@ object3D.traverse((child: any) => {
   }
 })
 ```
+
+## 补充
+
+- 命令行可直接执行
+- fbx2gltf -i model.fbx -o model.glb --khr-materials-unlit
+- gltfpack -i model.glb -o model_final.glb -cc -tc -si 0.5
+
+## 其他方案
+
+### 1) Draco 压缩（最常用）
+
+Draco 通常可以将模型体积减少 **50% ~ 90%**。
+
+```bash
+gltf-pipeline -i model.glb -o model_draco.glb -d
+```
+
+**优点**
+- 压缩率高
+- three.js 等主流引擎支持较好
+
+**注意**
+- 加载时需要解码，CPU 开销会略有增加
+- Web 端需要正确配置 Draco Decoder
+
+### 2) Meshopt 压缩（更现代）
+
+Meshopt 通常在保持较好压缩率的同时，带来更快的加载性能。
+
+```bash
+gltf-pipeline -i model.glb -o model_opt.glb --meshopt
+```
+
+**特点**
+- 解码速度快
+- 体积表现也不错
+- 适合实时渲染场景
+
+### 3) 贴图压缩（往往比模型更关键）
+
+很多项目里，文件体积的大头其实是贴图，而不是网格本身。
+
+#### 使用 KTX2 / Basis 压缩贴图
+
+```bash
+gltf-transform etc1s model.glb model_ktx.glb
+```
+
+高质量方案（体积略大、质量更好）：
+
+```bash
+gltf-transform uastc model.glb model_ktx.glb
+```
+
+**效果**
+- 贴图体积常见可缩小 **5~10 倍**
+- GPU 可直接使用压缩纹理，运行效率更好
+
+### 4) 减少模型复杂度
+
+#### 减面（Decimate）
+
+在 Blender 中可使用：
+
+`Modifier -> Decimate`
+
+可有效减少：
+- 顶点数
+- 面数
+
+#### 删除无用数据（Prune）
+
+```bash
+gltf-transform prune input.glb output.glb
+```
+
+可清理：
+- 未使用节点
+- 冗余动画数据
+- 空数据块
+
+### 5) 动画压缩（骨骼动画重点）
+
+骨骼模型中，动画数据通常占比较高，建议单独压缩：
+
+```bash
+gltf-transform resample input.glb output.glb
+gltf-transform quantize output.glb final.glb
+```
+
+**效果**
+- 减少关键帧数据量
+- 降低骨骼动画体积
 
 ## 常见报错排查
 
