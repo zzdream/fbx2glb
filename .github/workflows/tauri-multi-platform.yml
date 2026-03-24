@@ -4,6 +4,16 @@ on:
   workflow_dispatch:
   push:
     branches: [ "master", "main" ]
+    paths:
+      - "tauri/**"
+      - "README.md"
+      - "batch_fbx2glb_final.sh"
+      - "batch_fbx2glb.sh"
+      - "batch_gltfpack.sh"
+      - "Makefile"
+      - "justfile"
+      - "fbx_to_glb.py"
+      - ".github/workflows/tauri-multi-platform.yml"
 
 jobs:
   build:

@@ -85,9 +85,11 @@ just final /path/to/fbx /path/to/final_glb
 
 | 项目 | 说明 |
 |------|------|
-| **何时运行** | 向 `main` 或 `master` **push** 时自动运行；也可在仓库 **Actions** → 选中该工作流 → **Run workflow** 手动触发（`workflow_dispatch`） |
+| **何时运行** | 向 `main` 或 `master` **push** 且命中 `paths` 过滤时自动运行；也可在仓库 **Actions** → 选中该工作流 → **Run workflow** 手动触发（`workflow_dispatch`） |
 | **构建内容** | 在 `tauri/` 目录执行多平台 Tauri 打包（macOS universal、Linux x64、Windows x64） |
 | **产物** | 各 job 上传 **Artifacts**，名称形如 `tauri-macos-universal`、`tauri-linux-x64`、`tauri-windows-x64`，内含对应平台的 `bundle` 目录 |
+
+当前 `paths` 包括：`tauri/**`、`README.md`、`batch_fbx2glb_final.sh`、`batch_fbx2glb.sh`、`batch_gltfpack.sh`、`Makefile`、`justfile`、`fbx_to_glb.py`、`.github/workflows/tauri-multi-platform.yml`。例如只改 `electron/` 时不会自动触发。
 
 桌面版开发与嵌入 `fbx2gltf` / `gltfpack` 的细节见 [`tauri/README.md`](tauri/README.md)。
 
