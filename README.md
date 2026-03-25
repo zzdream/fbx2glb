@@ -26,7 +26,13 @@
 
 ### 桌面版开箱即用（无需手动安装依赖）
 
-如果你使用本仓库的两个桌面应用（`tauri/` 和 `electron/`），可以直接通过 GUI 完成转换与压缩，**不需要手动安装** `fbx2gltf` 和 `gltfpack`。
+如果你使用本仓库的两个桌面应用（`tauri/` 和 `electron/`），可以直接通过 GUI 完成转换与压缩，**不需要手动安装** `fbx2gltf` 和 `gltfpack` 和 `gltf-pipeline`。
+
+桌面 GUI 当前支持 3 种处理模式：
+
+- `FBX -> GLB -> 压缩`（默认，gltfpack）
+- `GLB -> 压缩`（gltfpack）
+- `GLB -> Draco 压缩`（`gltf-pipeline -d`）
 
 - Tauri 版说明见：[`tauri/README.md`](tauri/README.md)
 - Electron 版说明见：[`electron/README.md`](electron/README.md)
@@ -112,13 +118,15 @@ just final /path/to/fbx /path/to/final_glb
 
 桌面版开发与打包（含内置 `fbx2gltf` / `gltfpack`）细节见 [`tauri/README.md`](tauri/README.md) 与 [`electron/README.md`](electron/README.md)。
 
-## 三种工作流怎么选
+## 工作流怎么选
+
+以下以**命令行脚本**为主；桌面 GUI（`tauri/`、`electron/`）可选用与之一致的处理模式，其中 **Draco 模式**同样需要本机可执行 `gltf-pipeline`。
 
 ### A. 一步流（推荐，最省心）
 
 `batch_fbx2glb_final.sh`
 
-- 适合：大部分常规批处理
+- 适合：大部分常规批处理（FBX → GLB → gltfpack）
 - 优点：无中间目录、命令简单、统一出口
 
 ### B. 两步流（需要保留中间结果时）
@@ -128,7 +136,15 @@ just final /path/to/fbx /path/to/final_glb
 
 - 适合：想对比压缩前后质量、排查问题
 
-### C. Blender 脚本（备用）
+### C. 已有 GLB → 仅 Draco（`gltf-pipeline -d`）
+
+`batch_gltf_pipeline_draco.sh` / `batch_gltf_pipeline_draco.bat`
+
+- 适合：输入已经是 GLB，且目标环境需要 Draco 网格压缩（或只想走 Draco 管线）
+- 前提：已安装 `gltf-pipeline`（常见：`npm i -g gltf-pipeline`）
+- 说明：与 gltfpack 是不同压缩方案，按需二选一或分阶段使用，不要假定输出可互换
+
+### D. Blender 脚本（备用）
 
 `fbx_to_glb.py` 可以批量导出 GLB，但在当前实践里更容易出现骨骼动画问题，因此默认不作为首选链路。
 
