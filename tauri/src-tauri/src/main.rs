@@ -44,10 +44,10 @@ fn run_unix_script(
         .resource_dir()
         .map_err(|e| format!("获取资源目录失败: {e}"))?;
 
-    let script_name = if mode == "glb_compress_only" {
-        "batch_gltfpack.sh"
-    } else {
-        "batch_fbx2glb_final.sh"
+    let script_name = match mode {
+        "glb_compress_only" => "batch_gltfpack.sh",
+        "glb_draco_only" => "batch_gltf_pipeline_draco.sh",
+        _ => "batch_fbx2glb_final.sh",
     };
 
     let (script_path, use_bundled_resources) = {

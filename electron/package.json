@@ -50,6 +50,14 @@
       {
         "from": "../batch_gltfpack.bat",
         "to": "batch_gltfpack.bat"
+      },
+      {
+        "from": "../batch_gltf_pipeline_draco.sh",
+        "to": "batch_gltf_pipeline_draco.sh"
+      },
+      {
+        "from": "../batch_gltf_pipeline_draco.bat",
+        "to": "batch_gltf_pipeline_draco.bat"
       }
     ],
     "mac": {

@@ -23,9 +23,9 @@ export function setupConversionActions({
       return;
     }
 
-    if (selectedMode === "glb_compress_only") {
+    if (selectedMode === "glb_compress_only" || selectedMode === "glb_draco_only") {
       inputLabelEl.textContent = "输入目录（GLB）";
-      inputEl.placeholder = "请选择输入目录（包含 .glb 文件）";
+      inputEl.placeholder = "请选择输入目录";
     } else {
       inputLabelEl.textContent = "输入目录（FBX）";
       inputEl.placeholder = "请选择输入目录";
@@ -69,11 +69,13 @@ export function setupConversionActions({
     }
 
     setRunning(true);
-    appendLog(
-      selectedMode === "glb_compress_only"
-        ? "开始执行压缩任务（GLB -> 压缩 GLB）..."
-        : "开始执行转换任务（FBX -> GLB -> 压缩）..."
-    );
+    if (selectedMode === "glb_compress_only") {
+      appendLog("开始执行压缩任务（GLB -> 压缩 GLB，gltfpack）...");
+    } else if (selectedMode === "glb_draco_only") {
+      appendLog("开始执行压缩任务（GLB -> Draco 压缩 GLB）...");
+    } else {
+      appendLog("开始执行转换任务（FBX -> GLB -> 压缩）...");
+    }
 
     try {
       const result = await window.electronAPI.runConversion(inputDir, outputDir, selectedMode);

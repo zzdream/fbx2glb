@@ -29,6 +29,7 @@
       "../../batch_fbx2glb_final.sh": "batch_fbx2glb_final.sh",
       "../../batch_fbx2glb.sh": "batch_fbx2glb.sh",
       "../../batch_gltfpack.sh": "batch_gltfpack.sh",
+      "../../batch_gltf_pipeline_draco.sh": "batch_gltf_pipeline_draco.sh",
       "resources/bin/fbx2gltf": "bin/fbx2gltf",
       "resources/bin/gltfpack": "bin/gltfpack"
     }

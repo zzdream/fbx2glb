@@ -6,10 +6,11 @@
 
 ### 1) 批处理转换/压缩（主流程）
 
-支持两种处理模式：
+支持三种处理模式：
 
 - `FBX -> GLB -> 压缩`（默认）
 - `GLB -> 压缩`（直接压缩 GLB 文件夹）
+- `GLB -> Draco 压缩`（直接对已有 GLB 做 `gltf-pipeline -d`）
 
 你只需要选择输入目录和输出目录，点击 `开始转换`，界面会展示脚本执行日志。
 
@@ -21,6 +22,9 @@
 - `GLB -> 压缩`：
   - macOS/Linux: `batch_gltfpack.sh`
   - Windows: `batch_gltfpack.bat`
+- `GLB -> Draco 压缩`：
+  - macOS/Linux: `batch_gltf_pipeline_draco.sh`
+  - Windows: `batch_gltf_pipeline_draco.bat`
 
 ### 2) GLB 本地预览（右侧预览区）
 
@@ -65,14 +69,16 @@ pnpm dev
 1. 在“处理模式”中选择一种：
    - `FBX 转 GLB 并压缩`
    - `仅压缩 GLB 目录`
+   - `仅压缩 GLB（draco）`
 2. 选择输入目录与输出目录
 3. 点击 `开始转换`
 4. 在“执行日志”中查看进度与结果
 
 提示：
 
-- 当模式切换为“仅压缩 GLB 目录”时，输入目录文案会自动切换为“输入目录（GLB）”。
+- 当模式切换为“仅压缩 GLB 目录”或“仅压缩 GLB（draco）”时，输入目录文案会自动切换为“输入目录（GLB）”。
 - `batch_gltfpack` 支持递归子目录并保留目录结构。
+- `batch_gltf_pipeline_draco` 支持递归子目录并保留目录结构（依赖 `gltf-pipeline`）。
 
 ### B. 预览模式（模型查看）
 
@@ -92,6 +98,9 @@ pnpm dev
 - 选择“仅压缩 GLB 目录”后没有输出：
   - 请确认输入目录下实际存在 `.glb` 文件（支持递归）。
   - 请确认终端可执行 `gltfpack`（开发模式）或打包资源中已包含对应平台的 `gltfpack`。
+- 选择“仅压缩 GLB（draco）”后失败：
+  - 请确认终端可执行 `gltf-pipeline`（可通过 `npm i -g gltf-pipeline` 安装）。
+  - 请确认输入目录下存在 `.glb` 文件（支持递归）。
 - 预览时压缩模型加载失败：
   - 请确认模型使用的压缩扩展是否完整（KTX2 / Meshopt / Draco 资源应与模型一致）。
   - 先用未压缩 GLB 验证模型内容是否正常，再定位压缩链路问题。

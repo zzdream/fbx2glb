@@ -69,10 +69,14 @@ function resolveScriptPath(mode) {
     process.platform === "win32"
       ? mode === "glb_compress_only"
         ? "batch_gltfpack.bat"
-        : "batch_fbx2glb_final.bat"
+        : mode === "glb_draco_only"
+          ? "batch_gltf_pipeline_draco.bat"
+          : "batch_fbx2glb_final.bat"
       : mode === "glb_compress_only"
         ? "batch_gltfpack.sh"
-        : "batch_fbx2glb_final.sh";
+        : mode === "glb_draco_only"
+          ? "batch_gltf_pipeline_draco.sh"
+          : "batch_fbx2glb_final.sh";
   const resourceCandidates = [
     path.join(process.resourcesPath, scriptName),
     path.join(process.resourcesPath, "resources", scriptName)
@@ -194,7 +198,8 @@ ipcMain.handle("pick-directory", async () => {
 ipcMain.handle("run-conversion", async (_event, payload) => {
   const inputDir = (payload?.inputDir || "").trim();
   const outputDir = (payload?.outputDir || "").trim();
-  const mode = payload?.mode === "glb_compress_only" ? "glb_compress_only" : "fbx_to_glb_compress";
+  const allowedModes = new Set(["fbx_to_glb_compress", "glb_compress_only", "glb_draco_only"]);
+  const mode = allowedModes.has(payload?.mode) ? payload.mode : "fbx_to_glb_compress";
 
   if (!inputDir || !outputDir) {
     throw new Error("输入和输出目录不能为空");

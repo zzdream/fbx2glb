@@ -6,15 +6,17 @@
 
 ### 1) 批处理转换/压缩
 
-支持两种处理模式：
+支持三种处理模式：
 
 - `FBX -> GLB -> 压缩`（默认）
 - `GLB -> 压缩`（直接压缩 GLB 文件夹）
+- `GLB -> Draco 压缩`（直接对已有 GLB 做 `gltf-pipeline -d`）
 
 对应脚本：
 
 - `FBX -> GLB -> 压缩`：`batch_fbx2glb_final.sh`
 - `GLB -> 压缩`：`batch_gltfpack.sh`
+- `GLB -> Draco 压缩`：`batch_gltf_pipeline_draco.sh`
 
 ### 2) GLB 本地预览
 
@@ -54,15 +56,16 @@ pnpm tauri dev
 
 ### A. 转换/压缩
 
-1. 选择处理模式（`FBX -> GLB -> 压缩` 或 `GLB -> 压缩`）
+1. 选择处理模式（`FBX -> GLB -> 压缩`、`GLB -> 压缩` 或 `GLB -> Draco 压缩`）
 2. 选择输入目录与输出目录
 3. 点击 `开始转换`
 4. 在“执行日志”查看结果
 
 提示：
 
-- 模式切换为“仅压缩 GLB 目录”时，输入目录文案会自动改为“输入目录（GLB）”。
+- 模式切换为“仅压缩 GLB 目录”或“仅压缩 GLB（draco）”时，输入目录文案会自动改为“输入目录（GLB）”。
 - `batch_gltfpack.sh` 支持递归子目录并保留目录结构。
+- `batch_gltf_pipeline_draco.sh` 支持递归子目录并保留目录结构（依赖 `gltf-pipeline`）。
 
 ### B. 预览
 
