@@ -2,12 +2,13 @@
 SHELL := /bin/bash
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: help init check-deps final fbx2glb pack
+.PHONY: help init check-deps final fbx2glb pack draco
 
 # 兼容你直接传参的用法：
 # make final /path/to/fbx /path/to/output
 # make fbx2glb /path/to/fbx /path/to/glb
 # make pack /path/to/glb /path/to/output
+# make draco /path/to/glb /path/to/output
 ifeq ($(firstword $(MAKECMDGOALS)),final)
   INPUT ?= $(word 2,$(MAKECMDGOALS))
   OUTPUT ?= $(word 3,$(MAKECMDGOALS))
@@ -19,6 +20,11 @@ ifeq ($(firstword $(MAKECMDGOALS)),fbx2glb)
 endif
 
 ifeq ($(firstword $(MAKECMDGOALS)),pack)
+  INPUT ?= $(word 2,$(MAKECMDGOALS))
+  OUTPUT ?= $(word 3,$(MAKECMDGOALS))
+endif
+
+ifeq ($(firstword $(MAKECMDGOALS)),draco)
   INPUT ?= $(word 2,$(MAKECMDGOALS))
   OUTPUT ?= $(word 3,$(MAKECMDGOALS))
 endif
@@ -41,27 +47,37 @@ help:
 	@echo "  make pack /path/to/glb /path/to/out      # 位置参数（兼容）"
 	@echo "      仅批量 gltfpack 压缩"
 	@echo ""
+	@echo "  make draco INPUT=/path/to/glb OUTPUT=/path/to/out"
+	@echo "  make draco /path/to/glb /path/to/out     # 位置参数（兼容）"
+	@echo "      仅批量 gltf-pipeline Draco 压缩"
+	@echo ""
 
 init:
-	chmod +x "$(ROOT)/batch_fbx2glb_final.sh" "$(ROOT)/batch_fbx2glb.sh" "$(ROOT)/batch_gltfpack.sh"
+	chmod +x "$(ROOT)/batch_fbx2glb_final.sh" "$(ROOT)/batch_fbx2glb.sh" "$(ROOT)/batch_gltfpack.sh" "$(ROOT)/batch_gltf_pipeline_draco.sh"
 	@echo "已设置脚本可执行"
 
 check-deps:
 	@command -v fbx2gltf >/dev/null 2>&1 || { echo "Error: 未找到 fbx2gltf"; exit 1; }
 	@command -v gltfpack >/dev/null 2>&1 || { echo "Error: 未找到 gltfpack"; exit 1; }
 	@echo "依赖 OK: fbx2gltf, gltfpack"
-
+# 推荐：FBX → 临时 GLB → gltfpack 输出最终目录
 final: init check-deps
 	@test -n "$(INPUT)" -a -n "$(OUTPUT)" || { echo "用法: make final INPUT=/abs/fbx OUTPUT=/abs/out"; exit 1; }
 	"$(ROOT)/batch_fbx2glb_final.sh" "$(INPUT)" "$(OUTPUT)"
-
+# 仅 FBX → GLB
 fbx2glb: init
 	@test -n "$(INPUT)" -a -n "$(OUTPUT)" || { echo "用法: make fbx2glb INPUT=... OUTPUT=..."; exit 1; }
 	@command -v fbx2gltf >/dev/null 2>&1 || { echo "Error: 未找到 fbx2gltf"; exit 1; }
 	"$(ROOT)/batch_fbx2glb.sh" "$(INPUT)" "$(OUTPUT)"
-
+# 仅压缩已有 GLB
 pack: init
 	@test -n "$(INPUT)" -a -n "$(OUTPUT)" || { echo "用法: make pack INPUT=... OUTPUT=..."; exit 1; }
 	@command -v gltfpack >/dev/null 2>&1 || { echo "Error: 未找到 gltfpack"; exit 1; }
 	"$(ROOT)/batch_gltfpack.sh" "$(INPUT)" "$(OUTPUT)"
+
+# 仅批量 gltf-pipeline -d（Draco）压缩已有 GLB
+draco: init
+	@test -n "$(INPUT)" -a -n "$(OUTPUT)" || { echo "用法: make draco INPUT=... OUTPUT=..."; exit 1; }
+	@command -v gltf-pipeline >/dev/null 2>&1 || { echo "Error: 未找到 gltf-pipeline（可执行 npm i -g gltf-pipeline）"; exit 1; }
+	"$(ROOT)/batch_gltf_pipeline_draco.sh" "$(INPUT)" "$(OUTPUT)"
 

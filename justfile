@@ -8,7 +8,7 @@ default:
 	@just --list
 # 一次性为三个批量脚本加执行权限
 init:
-	chmod +x batch_fbx2glb_final.sh batch_fbx2glb.sh batch_gltfpack.sh
+	chmod +x batch_fbx2glb_final.sh batch_fbx2glb.sh batch_gltfpack.sh batch_gltf_pipeline_draco.sh
 	@echo "已设置脚本可执行"
 # 检查 PATH 中是否有 fbx2gltf、gltfpack
 check-deps:
@@ -26,3 +26,8 @@ fbx2glb input output: init
 pack input output: init
 	command -v gltfpack >/dev/null
 	./batch_gltfpack.sh "{{input}}" "{{output}}"
+
+# 仅批量 gltf-pipeline -d（Draco）压缩已有 GLB
+draco input output: init
+	command -v gltf-pipeline >/dev/null
+	./batch_gltf_pipeline_draco.sh "{{input}}" "{{output}}"
