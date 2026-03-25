@@ -4,7 +4,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import basisTranscoderJsUrl from "three/examples/jsm/libs/basis/basis_transcoder.js?url";
 import dracoDecoderJsUrl from "three/examples/jsm/libs/draco/gltf/draco_decoder.js?url";
 
 export class ModelPreviewer {
@@ -63,7 +62,8 @@ export class ModelPreviewer {
     const ktx2Loader = new KTX2Loader();
     const dracoLoader = new DRACOLoader();
 
-    const transcoderPath = basisTranscoderJsUrl.slice(0, basisTranscoderJsUrl.lastIndexOf("/") + 1);
+    // KTX2Loader 固定请求 basis_transcoder.js/.wasm；three npm 包不含 wasm，见 public/basis/
+    const transcoderPath = `${import.meta.env.BASE_URL}basis/`;
     const dracoDecoderPath = dracoDecoderJsUrl.slice(0, dracoDecoderJsUrl.lastIndexOf("/") + 1);
 
     ktx2Loader.setTranscoderPath(transcoderPath);
