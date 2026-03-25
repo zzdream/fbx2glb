@@ -2,11 +2,37 @@ const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
+const os = require("os");
 
 const WINDOWS_BIN_DIR = "bin-win-x64";
 
 const isDev = !app.isPackaged;
 const appDir = __dirname;
+
+function resolveWindowsCmdExe() {
+  const comspec = process.env.ComSpec || process.env.COMSPEC;
+  if (comspec && fs.existsSync(comspec)) {
+    return comspec;
+  }
+
+  const systemRoot = process.env.SystemRoot || process.env.SYSTEMROOT || "C:\\Windows";
+  const systemCmd = path.join(systemRoot, "System32", "cmd.exe");
+  if (fs.existsSync(systemCmd)) {
+    return systemCmd;
+  }
+
+  return "cmd.exe";
+}
+
+function stripEnclosingQuotes(value) {
+  const s = (value ?? "").trim();
+  if (s.length >= 2) {
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      return s.slice(1, -1);
+    }
+  }
+  return s;
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -146,19 +172,241 @@ function runConversionScript(inputDir, outputDir, mode) {
     envVars.PATH = `${binDir}${pathSep}${envVars.PATH || ""}`;
   }
 
+  const debugHeader = [
+    // "==== FBX2GLB DEBUG ====",
+    // `platform=${process.platform} arch=${process.arch}`,
+    // `mode=${mode}`,
+    // `useBundledResources=${String(useBundledResources)}`,
+    // `executionStrategy=${
+    //   process.platform === "win32" && useBundledResources ? "direct_exe" : "bat_script"
+    // }`,
+    // `scriptPath=${scriptPath}`,
+    // `inputDir=${inputDir}`,
+    // `outputDir=${outputDir}`,
+    // `PATH_head=${(envVars.PATH || "").slice(0, 220)}`
+  ].join("\n");
+
+  // Windows 打包后的运行：不要再依赖 cmd/bat，直接跑 exe，彻底规避引号转义导致的乱码/解析失败。
+  if (process.platform === "win32" && useBundledResources) {
+    const binDir = getBundledBinDir();
+    const fbx2gltfExe = path.join(binDir, "fbx2gltf.exe");
+    const gltfpackExe = path.join(binDir, "gltfpack.exe");
+    const gltfPipelineExe = path.join(binDir, "gltf-pipeline.exe");
+
+    if (!fs.existsSync(fbx2gltfExe)) {
+      throw new Error(`未找到 fbx2gltf：${fbx2gltfExe}`);
+    }
+    if (!fs.existsSync(gltfpackExe)) {
+      throw new Error(`未找到 gltfpack：${gltfpackExe}`);
+    }
+
+    async function listFilesRecursive(rootDir, predicate) {
+      /** @type {string[]} */
+      const results = [];
+      async function walk(dir) {
+        const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+        for (const ent of entries) {
+          const fullPath = path.join(dir, ent.name);
+          if (ent.isDirectory()) {
+            if (ent.name === "__MACOSX") continue; // 对齐 bat 的跳过逻辑
+            await walk(fullPath);
+          } else if (ent.isFile()) {
+            if (predicate(fullPath)) results.push(fullPath);
+          }
+        }
+      }
+      await walk(rootDir);
+      return results;
+    }
+
+    function toRelativeOutFile(inputRoot, filePath, outputRoot) {
+      const rel = path.relative(inputRoot, filePath);
+      const relDir = path.dirname(rel);
+      const { name } = path.parse(filePath);
+      const outDir = relDir === "." ? outputRoot : path.join(outputRoot, relDir);
+      const outFile = path.join(outDir, `${name}.glb`);
+      return { rel, outDir, outFile };
+    }
+
+    function runExe(exePath, args) {
+      return new Promise((resolve) => {
+        let stdout = "";
+        let stderr = "";
+        const child = spawn(exePath, args, {
+          cwd: path.dirname(exePath),
+          env: envVars,
+          windowsHide: true
+        });
+        child.stdout.on("data", (chunk) => {
+          stdout += chunk.toString();
+        });
+        child.stderr.on("data", (chunk) => {
+          stderr += chunk.toString();
+        });
+        child.on("error", (err) => {
+          resolve({ code: -1, stdout, stderr: err.message });
+        });
+        child.on("close", (code) => {
+          resolve({ code: code ?? 0, stdout, stderr });
+        });
+      });
+    }
+
+    async function convertFbxToGlbCompress() {
+      const tempRoot = path.join(
+        os.tmpdir(),
+        `fbx2glb_tmp_${Date.now()}_${Math.random().toString(16).slice(2)}`
+      );
+
+      let converted = 0;
+      let failedConvert = 0;
+      let compressed = 0;
+      let failedCompress = 0;
+
+      let merged = debugHeader + "\n";
+
+      const fbxFiles = await listFilesRecursive(inputDir, (p) => {
+        const lower = p.toLowerCase();
+        if (!lower.endsWith(".fbx")) return false;
+        const base = path.basename(p);
+        if (base.startsWith("._")) return false;
+        return true;
+      });
+
+      try {
+        for (const fbxPath of fbxFiles) {
+          const { rel, outDir: tmpOutDir, outFile: tmpOutFile } = toRelativeOutFile(
+            inputDir,
+            fbxPath,
+            tempRoot
+          );
+          await fs.promises.mkdir(tmpOutDir, { recursive: true });
+
+          merged += `Converting: ${rel} -> ${path.relative(tempRoot, tmpOutFile)}\n`;
+          const { code, stdout, stderr } = await runExe(fbx2gltfExe, [
+            "-i",
+            fbxPath,
+            "-o",
+            tmpOutFile,
+            "--khr-materials-unlit"
+          ]);
+          if (code !== 0) {
+            failedConvert++;
+            merged += `  ^^ 失败 (fbx2gltf exit code ${code})\n`;
+            if (stdout) merged += `-- stdout --\n${stdout}\n`;
+            if (stderr) merged += `-- stderr --\n${stderr}\n`;
+            continue;
+          }
+          converted++;
+
+          const finalOutDir = tmpOutDir === tempRoot ? outputDir : path.join(outputDir, path.relative(tempRoot, tmpOutDir));
+          await fs.promises.mkdir(finalOutDir, { recursive: true });
+          merged += `Compressing: ${rel} -> ${path.relative(outputDir, path.join(finalOutDir, path.basename(tmpOutFile)))}\n`;
+          const { code: cCode, stdout: cStdout, stderr: cStderr } = await runExe(gltfpackExe, [
+            "-i",
+            tmpOutFile,
+            "-o",
+            path.join(finalOutDir, path.basename(tmpOutFile)),
+            "-cc",
+            "-tc",
+            "-si",
+            "0.5"
+          ]);
+          if (cCode !== 0) {
+            failedCompress++;
+            merged += `  ^^ 失败 (gltfpack exit code ${cCode})\n`;
+            if (cStdout) merged += `-- stdout --\n${cStdout}\n`;
+            if (cStderr) merged += `-- stderr --\n${cStderr}\n`;
+          } else {
+            compressed++;
+          }
+        }
+      } finally {
+        // 清理临时目录
+        try {
+          await fs.promises.rm(tempRoot, { recursive: true, force: true });
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      merged += `\n完成: 转换成功 ${converted} 个, 转换失败 ${failedConvert} 个\n`;
+      merged += `完成: 压缩成功 ${compressed} 个, 压缩失败 ${failedCompress} 个\n`;
+      return merged;
+    }
+
+    async function compressGlbOnly() {
+      let merged = debugHeader + "\n";
+      let compressed = 0;
+      let failedCompress = 0;
+
+      const glbFiles = await listFilesRecursive(inputDir, (p) => {
+        const lower = p.toLowerCase();
+        if (!(lower.endsWith(".glb"))) return false;
+        const base = path.basename(p);
+        if (base.startsWith("._")) return false;
+        return true;
+      });
+
+      for (const glbPath of glbFiles) {
+        const { rel, outDir, outFile } = toRelativeOutFile(inputDir, glbPath, outputDir);
+        await fs.promises.mkdir(outDir, { recursive: true });
+
+        merged += `Compressing: ${rel} -> ${path.relative(outputDir, outFile)}\n`;
+        const { code, stdout, stderr } = await runExe(gltfpackExe, [
+          "-i",
+          glbPath,
+          "-o",
+          outFile,
+          "-cc",
+          "-tc",
+          "-si",
+          "0.5"
+        ]);
+        if (code !== 0) {
+          failedCompress++;
+          merged += `  ^^ 失败 (gltfpack exit code ${code})\n`;
+          if (stdout) merged += `-- stdout --\n${stdout}\n`;
+          if (stderr) merged += `-- stderr --\n${stderr}\n`;
+        } else {
+          compressed++;
+        }
+      }
+
+      merged += `\n完成: 压缩成功 ${compressed} 个, 压缩失败 ${failedCompress} 个\n`;
+      return merged;
+    }
+
+    if (mode === "glb_draco_only") {
+      if (!fs.existsSync(gltfPipelineExe)) {
+        throw new Error(`glb_draco_only 需要 gltf-pipeline，但未在打包资源中找到：${gltfPipelineExe}`);
+      }
+      // 目前先给出明确错误，避免继续走 bat/cmd 导致同类解析问题。
+      throw new Error("glb_draco_only 未实现（需要在 Node 侧接 gltf-pipeline 参数逻辑）");
+    }
+
+    if (mode === "fbx_to_glb_compress") {
+      return convertFbxToGlbCompress();
+    }
+    if (mode === "glb_compress_only") {
+      return compressGlbOnly();
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const child =
       process.platform === "win32"
-        ? spawn("cmd.exe", ["/c", scriptPath, inputDir, outputDir], {
+        ? spawn(resolveWindowsCmdExe(), ["/d", "/s", "/c", scriptPath, inputDir, outputDir], {
             cwd: path.dirname(scriptPath),
-            env: envVars
+            env: envVars,
+            windowsHide: true
           })
         : spawn("bash", [scriptPath, inputDir, outputDir], {
             cwd: path.dirname(scriptPath),
             env: envVars
           });
 
-    let merged = "";
+    let merged = debugHeader + "\n";
 
     child.stdout.on("data", (chunk) => {
       merged += chunk.toString();
@@ -169,7 +417,7 @@ function runConversionScript(inputDir, outputDir, mode) {
     });
 
     child.on("error", (err) => {
-      reject(new Error(`执行脚本失败: ${err.message}`));
+      reject(new Error(`执行脚本失败: ${err.message}\n${debugHeader}`));
     });
 
     child.on("close", (code) => {
@@ -196,8 +444,8 @@ ipcMain.handle("pick-directory", async () => {
 });
 
 ipcMain.handle("run-conversion", async (_event, payload) => {
-  const inputDir = (payload?.inputDir || "").trim();
-  const outputDir = (payload?.outputDir || "").trim();
+  const inputDir = stripEnclosingQuotes(payload?.inputDir || "");
+  const outputDir = stripEnclosingQuotes(payload?.outputDir || "");
   const allowedModes = new Set(["fbx_to_glb_compress", "glb_compress_only", "glb_draco_only"]);
   const mode = allowedModes.has(payload?.mode) ? payload.mode : "fbx_to_glb_compress";
 
