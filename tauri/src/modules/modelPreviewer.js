@@ -4,7 +4,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import dracoDecoderJsUrl from "three/examples/jsm/libs/draco/gltf/draco_decoder.js?url";
 
 export class ModelPreviewer {
   constructor({ previewCanvasEl, previewStatusEl, glbFilePathEl, toggleFullscreenBtn }) {
@@ -62,14 +61,14 @@ export class ModelPreviewer {
     const ktx2Loader = new KTX2Loader();
     const dracoLoader = new DRACOLoader();
 
-    // KTX2Loader 固定请求 basis_transcoder.js/.wasm；three npm 包不含 wasm，见 public/basis/
+    // KTX2 / DRACOLoader 均按固定文件名从目录加载（见 public/basis、public/draco/gltf）
     const transcoderPath = `${import.meta.env.BASE_URL}basis/`;
-    const dracoDecoderPath = dracoDecoderJsUrl.slice(0, dracoDecoderJsUrl.lastIndexOf("/") + 1);
+    const dracoDecoderPath = `${import.meta.env.BASE_URL}draco/gltf/`;
 
     ktx2Loader.setTranscoderPath(transcoderPath);
     ktx2Loader.detectSupport(this.renderer);
     dracoLoader.setDecoderPath(dracoDecoderPath);
-    dracoLoader.setDecoderConfig({ type: "js" });
+    // 默认走 WASM（需 draco_wasm_wrapper.js + draco_decoder.wasm）；无 WebAssembly 时自动用 draco_decoder.js
 
     this.gltfLoader.setKTX2Loader(ktx2Loader);
     this.gltfLoader.setDRACOLoader(dracoLoader);
