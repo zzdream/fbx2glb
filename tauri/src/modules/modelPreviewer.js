@@ -5,6 +5,10 @@ import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
+/**
+ * GLB 预览：Three.js 场景、KTX2/Draco/Meshopt 解码、多文件网格排布与相机自适应。
+ * Tauri/WebView 下可能无标准全屏 API，故增加「应用内全屏」（shell 样式 + body 禁止滚动）作为回退。
+ */
 export class ModelPreviewer {
   constructor({ previewCanvasEl, previewStatusEl, glbFilePathEl, toggleFullscreenBtn }) {
     this.previewCanvasEl = previewCanvasEl;
@@ -26,6 +30,7 @@ export class ModelPreviewer {
     this.startRenderLoop();
   }
 
+  /** 初始化场景、相机、渲染器、轨道控制、灯光与地面网格 */
   setupScene() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xf1f5f9);
@@ -56,6 +61,7 @@ export class ModelPreviewer {
     window.addEventListener("resize", () => this.updateRendererSize());
   }
 
+  /** 配置 GLTFLoader：KTX2 转码、Draco、Meshopt，静态资源路径与 public 目录对应 */
   setupLoaders() {
     this.gltfLoader = new GLTFLoader();
     const ktx2Loader = new KTX2Loader();
@@ -75,6 +81,10 @@ export class ModelPreviewer {
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
   }
 
+  /**
+   * 全屏：优先 `requestFullscreen`；不可用时切换应用内全屏类名。
+   * `fullscreenchange` 与 Escape（仅应用内全屏且非 DOM 全屏时）同步按钮文案与画布尺寸。
+   */
   bindFullscreenEvents() {
     const syncFullscreenButtonText = () => {
       const isDomFullscreen = document.fullscreenElement === this.previewCanvasEl;
@@ -119,6 +129,7 @@ export class ModelPreviewer {
     syncFullscreenButtonText();
   }
 
+  /** 每帧更新动画混合器、阻尼控制并渲染 */
   startRenderLoop() {
     const render = () => {
       requestAnimationFrame(render);
@@ -132,6 +143,7 @@ export class ModelPreviewer {
     render();
   }
 
+  /** 按预览容器 client 尺寸设置 canvas 与相机宽高比 */
   updateRendererSize() {
     const width = this.previewCanvasEl.clientWidth;
     const height = this.previewCanvasEl.clientHeight || 420;
@@ -140,6 +152,7 @@ export class ModelPreviewer {
     this.camera.updateProjectionMatrix();
   }
 
+  /** 释放几何/材质、停止动画、从场景移除组并 revoke 本次加载的 blob URL */
   disposeCurrentModel() {
     if (this.loadedModels.length === 0) {
       return;
@@ -176,6 +189,7 @@ export class ModelPreviewer {
     }
   }
 
+  /** 根据包围盒计算相机距离与 near/far，使整模型落在视野内 */
   fitCameraToModel(object3dOrGroup) {
     const box = new THREE.Box3().setFromObject(object3dOrGroup);
     const size = box.getSize(new THREE.Vector3());
@@ -193,11 +207,13 @@ export class ModelPreviewer {
     this.controls.update();
   }
 
+  /** 从 FileList 中筛出 .glb（不区分大小写） */
   static getGlbFiles(fileList) {
     const files = Array.from(fileList || []);
     return files.filter((file) => file.name.toLowerCase().endsWith(".glb"));
   }
 
+  /** 顺序加载多个 GLB，按网格排布到 Group 中并适配相机 */
   async loadGlbFiles(files) {
     if (!files.length) {
       this.previewStatusEl.textContent = "未找到 .glb 文件";

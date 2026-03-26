@@ -1,3 +1,6 @@
+/**
+ * 转换面板：绑定目录选择、模式切换与「开始转换」流程，通过 preload 暴露的 electronAPI 调用主进程。
+ */
 export function setupConversionActions({
   inputEl,
   outputEl,
@@ -7,15 +10,18 @@ export function setupConversionActions({
   pickOutputBtn,
   startBtn
 }) {
+  /** 追加一行日志并滚动到底部 */
   function appendLog(line) {
     logEl.value += `${line}\n`;
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  /** 当前选中的转换模式（默认 FBX→GLB 压缩流水线） */
   function getSelectedMode() {
     return Array.from(modeInputs).find((el) => el.checked)?.value || "fbx_to_glb_compress";
   }
 
+  /** 根据模式更新输入目录标签：纯 GLB 流程提示 GLB，否则提示 FBX */
   function updateInputLabelByMode() {
     const selectedMode = getSelectedMode();
     const inputLabelEl = document.querySelector('label[for="inputDir"]');
@@ -32,6 +38,7 @@ export function setupConversionActions({
     }
   }
 
+  /** 运行中禁用目录按钮并更新按钮文案，防止重复触发 */
   function setRunning(running) {
     startBtn.disabled = running;
     pickInputBtn.disabled = running;
