@@ -60,6 +60,22 @@
           <button id="toggleFullscreenBtn" class="preview-fs-btn">全屏预览</button>
         </div>
       </section>
+
+      <section class="card">
+        <label for="fbxFileInput">FBX 模型预览</label>
+        <div class="row">
+          <input id="fbxFilePath" type="text" placeholder="请选择本地 .fbx 文件（建议选含贴图的文件夹）" readonly />
+          <button id="pickFbxBtn">选择 FBX</button>
+          <button id="pickFbxFolderBtn">选择文件夹</button>
+        </div>
+        <input id="fbxFileInput" type="file" accept=".fbx" hidden />
+        <input id="fbxFolderInput" type="file" webkitdirectory directory multiple hidden />
+        <div id="fbxPreviewStatus" class="preview-status">未加载模型</div>
+        <div class="preview-shell">
+          <div id="fbxPreviewCanvas" class="preview-canvas"></div>
+          <button id="fbxToggleFullscreenBtn" class="preview-fs-btn">全屏预览</button>
+        </div>
+      </section>
     </main>
   </body>
 </html>

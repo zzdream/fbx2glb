@@ -1,19 +1,21 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
 /**
- * GLB 预览：Three.js 场景、KTX2/Draco/Meshopt 解码、多文件网格排布与相机自适应。
+ * 模型预览：Three.js 场景、GLB（KTX2/Draco/Meshopt）或 FBX 加载、多文件网格排布与相机自适应。
  */
 export class ModelPreviewer {
-  constructor({ previewCanvasEl, previewStatusEl, glbFilePathEl, toggleFullscreenBtn }) {
+  constructor({ previewCanvasEl, previewStatusEl, filePathEl, toggleFullscreenBtn, format = "glb" }) {
     this.previewCanvasEl = previewCanvasEl;
     this.previewStatusEl = previewStatusEl;
-    this.glbFilePathEl = glbFilePathEl;
+    this.filePathEl = filePathEl;
     this.toggleFullscreenBtn = toggleFullscreenBtn;
+    this.format = format;
 
     this.loadedModels = [];
     this.currentBlobUrls = [];
@@ -183,6 +185,35 @@ export class ModelPreviewer {
     return files.filter((file) => file.name.toLowerCase().endsWith(".glb"));
   }
 
+  /** 从 FileList 中筛出 .fbx（不区分大小写） */
+  static getFbxFiles(fileList) {
+    const files = Array.from(fileList || []);
+    return files.filter((file) => file.name.toLowerCase().endsWith(".fbx"));
+  }
+
+  /** 为文件夹内所有文件建立 blob URL，供贴图等资源解析 */
+  buildFileUrlMap(files) {
+    const map = new Map();
+    for (const file of files) {
+      const blobUrl = URL.createObjectURL(file);
+      this.currentBlobUrls.push(blobUrl);
+      map.set(file.name.toLowerCase(), blobUrl);
+    }
+    return map;
+  }
+
+  static resolveUrlFromMap(url, fileUrlMap) {
+    const raw = decodeURIComponent(String(url).split(/[/\\]/).pop() || "");
+    const key = raw.toLowerCase();
+    return fileUrlMap.get(key) || url;
+  }
+
+  createFbxLoader(fileUrlMap) {
+    const manager = new THREE.LoadingManager();
+    manager.setURLModifier((url) => ModelPreviewer.resolveUrlFromMap(url, fileUrlMap));
+    return new FBXLoader(manager);
+  }
+
   /** 顺序加载多个 GLB，按网格排布到 Group 中并适配相机 */
   async loadGlbFiles(files) {
     if (!files.length) {
@@ -190,7 +221,7 @@ export class ModelPreviewer {
       return;
     }
 
-    this.glbFilePathEl.value = files.length === 1 ? files[0].name : `已选择 ${files.length} 个 GLB`;
+    this.filePathEl.value = files.length === 1 ? files[0].name : `已选择 ${files.length} 个 GLB`;
     this.previewStatusEl.textContent = `加载模型中（0/${files.length}）...`;
 
     try {
@@ -235,6 +266,64 @@ export class ModelPreviewer {
       this.scene.add(this.loadedGroup);
       this.fitCameraToModel(this.loadedGroup);
       this.previewStatusEl.textContent = `预览成功：共 ${loadedEntries.length} 个 GLB`;
+    } catch (error) {
+      this.previewStatusEl.textContent = `加载失败：${String(error)}`;
+    }
+  }
+
+  /** 顺序加载多个 FBX，解析同目录贴图，按网格排布并适配相机 */
+  async loadFbxFiles(files, resourceFiles = files) {
+    if (!files.length) {
+      this.previewStatusEl.textContent = "未找到 .fbx 文件";
+      return;
+    }
+
+    this.filePathEl.value = files.length === 1 ? files[0].name : `已选择 ${files.length} 个 FBX`;
+    this.previewStatusEl.textContent = `加载模型中（0/${files.length}）...`;
+
+    try {
+      this.disposeCurrentModel();
+      const fileUrlMap = this.buildFileUrlMap(resourceFiles);
+      const fbxLoader = this.createFbxLoader(fileUrlMap);
+      const loadedEntries = [];
+
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        const blobUrl = fileUrlMap.get(file.name.toLowerCase());
+        const model = await fbxLoader.loadAsync(blobUrl);
+        loadedEntries.push({ model });
+
+        if (Array.isArray(model.animations) && model.animations.length > 0) {
+          const mixer = new THREE.AnimationMixer(model);
+          for (const clip of model.animations) {
+            mixer.clipAction(clip).play();
+          }
+          this.animationMixers.push(mixer);
+        }
+
+        this.previewStatusEl.textContent = `加载模型中（${i + 1}/${files.length}）...`;
+      }
+
+      const spacing = 8;
+      const columns = Math.max(1, Math.ceil(Math.sqrt(loadedEntries.length)));
+      const previewGroup = new THREE.Group();
+
+      loadedEntries.forEach((entry, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = (col - (columns - 1) / 2) * spacing;
+        const z = row * spacing;
+        entry.model.position.set(x, 0, z);
+        previewGroup.add(entry.model);
+        this.loadedModels.push(entry.model);
+      });
+
+      this.loadedGroup = previewGroup;
+      this.scene.add(this.loadedGroup);
+      this.fitCameraToModel(this.loadedGroup);
+      const textureHint =
+        resourceFiles.length > files.length ? "" : "（外部贴图需与 FBX 同文件夹选择）";
+      this.previewStatusEl.textContent = `预览成功：共 ${loadedEntries.length} 个 FBX${textureHint}`;
     } catch (error) {
       this.previewStatusEl.textContent = `加载失败：${String(error)}`;
     }
