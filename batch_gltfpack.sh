@@ -40,7 +40,7 @@ while IFS= read -r -d '' f; do
     mkdir -p "$out_dir"
     echo "Compressing: $rel_path -> $rel_dir/$filename.glb"
     # 捕获 gltfpack 输出，失败时打印，方便排查
-    if gltf_out="$(gltfpack -i "$f" -o "$out_file" -cc -tc -si 0.5 2>&1)"; then
+     if gltf_out="$(gltfpack -i "$f" -o "$out_file" -cc -tc -si 0.5 2>&1)"; then
         ((count++))
     else
         ((failed++))
@@ -51,5 +51,5 @@ done < <(find "$INPUT_FOLDER" -type f \( -iname "*.glb" \) -not -path "*/__MACOS
 
 echo ""
 echo "完成: 成功 $count 个, 失败 $failed 个"
-
 # 示例: ./batch_gltfpack.sh /path/to/models /path/to/models_compressed
+

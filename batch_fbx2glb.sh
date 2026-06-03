@@ -39,7 +39,8 @@ while IFS= read -r -d '' f; do
     mkdir -p "$out_dir"
     echo "Converting: $rel_path -> $rel_dir/$filename.glb"
     # 捕获 fbx2gltf 输出，失败时打印，方便非技术用户排查
-    if fbx_out="$(fbx2gltf -i "$f" -o "$out_file" --khr-materials-unlit 2>&1)"; then
+    if fbx_out="$(fbx2gltf -i "$f" -o "$out_file")"; then
+    # if fbx_out="$(fbx2gltf -i "$f" -o "$out_file" --khr-materials-unlit 2>&1)"; then
         ((count++))
     else
         ((failed++))
@@ -50,5 +51,5 @@ done < <(find "$INPUT_FOLDER" -type f \( -iname "*.fbx" \) -not -path "*/__MACOS
 
 echo ""
 echo "完成: 成功 $count 个, 失败 $failed 个"
-
 # 示例: ./batch_fbx2glb.sh /path/to/models /path/to/models2
+
