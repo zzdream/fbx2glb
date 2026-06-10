@@ -58,6 +58,18 @@
       {
         "from": "../batch_gltf_pipeline_draco.bat",
         "to": "batch_gltf_pipeline_draco.bat"
+      },
+      {
+        "from": "../scripts/glb-material-fix.cjs",
+        "to": "scripts/glb-material-fix.cjs"
+      },
+      {
+        "from": "../scripts/tga-png.cjs",
+        "to": "scripts/tga-png.cjs"
+      },
+      {
+        "from": "../scripts/fbx-extract-fbm.cjs",
+        "to": "scripts/fbx-extract-fbm.cjs"
       }
     ],
     "mac": {

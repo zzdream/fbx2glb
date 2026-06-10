@@ -14,6 +14,10 @@ if [ ! -d "$INPUT_FOLDER" ]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+GLB_FIX_SCRIPT="$SCRIPT_DIR/scripts/glb-material-fix.cjs"
+FBM_EXTRACT_SCRIPT="$SCRIPT_DIR/scripts/fbx-extract-fbm.cjs"
+
 # 检查 fbx2gltf 是否可用
 if ! command -v fbx2gltf &>/dev/null; then
     echo "Error: 未找到 fbx2gltf，请先安装 FBX2glTF"
@@ -38,9 +42,14 @@ while IFS= read -r -d '' f; do
 
     mkdir -p "$out_dir"
     echo "Converting: $rel_path -> $rel_dir/$filename.glb"
+    if [ -f "$FBM_EXTRACT_SCRIPT" ]; then
+        node "$FBM_EXTRACT_SCRIPT" "$f" >/dev/null 2>&1 || true
+    fi
     # 捕获 fbx2gltf 输出，失败时打印，方便非技术用户排查
-    if fbx_out="$(fbx2gltf -i "$f" -o "$out_file")"; then
-    # if fbx_out="$(fbx2gltf -i "$f" -o "$out_file" --khr-materials-unlit 2>&1)"; then
+    if fbx_out="$(fbx2gltf -i "$f" -o "$out_file" --pbr-metallic-roughness 2>&1)"; then
+        if [ -f "$GLB_FIX_SCRIPT" ]; then
+            node "$GLB_FIX_SCRIPT" "$out_file" "$out_file" >/dev/null 2>&1 || true
+        fi
         ((count++))
     else
         ((failed++))

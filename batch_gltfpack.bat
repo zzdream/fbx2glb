@@ -47,7 +47,7 @@ for /R "%INPUT_FOLDER%" %%F in (*.glb *.GLB) do (
       set "OUT_FILE=!OUT_DIR!!NAME!.glb"
 
       echo Compressing: !REL! -^> !REL_DIR!!NAME!.glb
-      gltfpack -i "%%~fF" -o "!OUT_FILE!" -cc -tc -si 0.5 >"!LOG_FILE!" 2>&1
+      gltfpack -i "%%~fF" -o "!OUT_FILE!" -cc -tc -si 1 -kn -km >"!LOG_FILE!" 2>&1
       if errorlevel 1 (
         set /a failed+=1
         echo   ^^ 失败

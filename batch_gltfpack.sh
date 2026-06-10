@@ -6,7 +6,7 @@ OUTPUT_FOLDER="$2"
 if [ -z "$INPUT_FOLDER" ] || [ -z "$OUTPUT_FOLDER" ]; then
     echo "Usage: ./batch_gltfpack.sh /path/to/glb /path/to/output"
     echo "支持递归子目录，保留目录结构"
-    echo "参数: -cc mesh压缩 -tc 贴图压缩 -si 0.5 精度"
+    echo "参数: -cc mesh压缩 -tc 贴图压缩 -si 1 -kn -km 保留车灯网格"
     exit 1
 fi
 
@@ -40,7 +40,7 @@ while IFS= read -r -d '' f; do
     mkdir -p "$out_dir"
     echo "Compressing: $rel_path -> $rel_dir/$filename.glb"
     # 捕获 gltfpack 输出，失败时打印，方便排查
-     if gltf_out="$(gltfpack -i "$f" -o "$out_file" -cc -tc -si 0.5 2>&1)"; then
+     if gltf_out="$(gltfpack -i "$f" -o "$out_file" -cc -tc -si 1 -kn -km 2>&1)"; then
         ((count++))
     else
         ((failed++))

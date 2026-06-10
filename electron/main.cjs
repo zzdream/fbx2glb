@@ -3,6 +3,14 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const os = require("os");
+const glbMaterialFixPath = app.isPackaged
+  ? path.join(process.resourcesPath, "scripts", "glb-material-fix.cjs")
+  : path.join(__dirname, "..", "scripts", "glb-material-fix.cjs");
+const fbxExtractFbmPath = app.isPackaged
+  ? path.join(process.resourcesPath, "scripts", "fbx-extract-fbm.cjs")
+  : path.join(__dirname, "..", "scripts", "fbx-extract-fbm.cjs");
+const { fixGlbFile } = require(glbMaterialFixPath);
+const { extractEmbeddedTextures } = require(fbxExtractFbmPath);
 
 const WINDOWS_BIN_DIR = "bin-win-x64";
 
@@ -283,12 +291,17 @@ function runConversionScript(inputDir, outputDir, mode) {
           await fs.promises.mkdir(tmpOutDir, { recursive: true });
 
           merged += `Converting: ${rel} -> ${path.relative(tempRoot, tmpOutFile)}\n`;
+          try {
+            extractEmbeddedTextures(fbxPath);
+          } catch (extractErr) {
+            merged += `  贴图提取警告: ${extractErr.message}\n`;
+          }
           const { code, stdout, stderr } = await runExe(fbx2gltfExe, [
             "-i",
             fbxPath,
             "-o",
             tmpOutFile,
-            "--khr-materials-unlit"
+            "--pbr-metallic-roughness"
           ]);
           if (code !== 0) {
             failedConvert++;
@@ -296,6 +309,11 @@ function runConversionScript(inputDir, outputDir, mode) {
             if (stdout) merged += `-- stdout --\n${stdout}\n`;
             if (stderr) merged += `-- stderr --\n${stderr}\n`;
             continue;
+          }
+          try {
+            fixGlbFile(tmpOutFile, tmpOutFile);
+          } catch (fixErr) {
+            merged += `  材质修补警告: ${fixErr.message}\n`;
           }
           converted++;
 
@@ -310,7 +328,9 @@ function runConversionScript(inputDir, outputDir, mode) {
             "-cc",
             "-tc",
             "-si",
-            "0.5"
+            "1",
+            "-kn",
+            "-km"
           ]);
           if (cCode !== 0) {
             failedCompress++;
@@ -361,7 +381,9 @@ function runConversionScript(inputDir, outputDir, mode) {
           "-cc",
           "-tc",
           "-si",
-          "0.5"
+          "1",
+          "-kn",
+          "-km"
         ]);
         if (code !== 0) {
           failedCompress++;

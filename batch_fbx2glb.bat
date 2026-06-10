@@ -47,12 +47,22 @@ for /R "%INPUT_FOLDER%" %%F in (*.fbx *.FBX) do (
       set "OUT_FILE=!OUT_DIR!!NAME!.glb"
 
       echo Converting: !REL! -^> !REL_DIR!!NAME!.glb
-      fbx2gltf -i "%%~fF" -o "!OUT_FILE!" --khr-materials-unlit >"!LOG_FILE!" 2>&1
+      if exist "%~dp0scripts\fbx-extract-fbm.cjs" (
+        node "%~dp0scripts\fbx-extract-fbm.cjs" "%%~fF" >nul 2>&1
+      ) else if exist "%~dp0..\scripts\fbx-extract-fbm.cjs" (
+        node "%~dp0..\scripts\fbx-extract-fbm.cjs" "%%~fF" >nul 2>&1
+      )
+      fbx2gltf -i "%%~fF" -o "!OUT_FILE!" --pbr-metallic-roughness >"!LOG_FILE!" 2>&1
       if errorlevel 1 (
         set /a failed+=1
         echo   ^^ 失败
         type "!LOG_FILE!"
       ) else (
+        if exist "%~dp0scripts\glb-material-fix.cjs" (
+          node "%~dp0scripts\glb-material-fix.cjs" "!OUT_FILE!" "!OUT_FILE!" >nul 2>&1
+        ) else if exist "%~dp0..\scripts\glb-material-fix.cjs" (
+          node "%~dp0..\scripts\glb-material-fix.cjs" "!OUT_FILE!" "!OUT_FILE!" >nul 2>&1
+        )
         set /a count+=1
       )
     )
