@@ -98,6 +98,14 @@ function getBundledBinDir() {
   return null;
 }
 
+function isFbxToGlbCompressMode(mode) {
+  return mode === "fbx_to_glb_compress" || mode === "fbx_to_glb_compress_lit";
+}
+
+function materialProfileForMode(mode) {
+  return mode === "fbx_to_glb_compress_lit" ? "lit" : "default";
+}
+
 function resolveScriptPath(mode) {
   const scriptName =
     process.platform === "win32"
@@ -105,12 +113,16 @@ function resolveScriptPath(mode) {
         ? "batch_gltfpack.bat"
         : mode === "glb_draco_only"
           ? "batch_gltf_pipeline_draco.bat"
-          : "batch_fbx2glb_final.bat"
+          : isFbxToGlbCompressMode(mode)
+            ? "batch_fbx2glb_final.bat"
+            : "batch_fbx2glb_final.bat"
       : mode === "glb_compress_only"
         ? "batch_gltfpack.sh"
         : mode === "glb_draco_only"
           ? "batch_gltf_pipeline_draco.sh"
-          : "batch_fbx2glb_final.sh";
+          : isFbxToGlbCompressMode(mode)
+            ? "batch_fbx2glb_final.sh"
+            : "batch_fbx2glb_final.sh";
   const resourceCandidates = [
     path.join(process.resourcesPath, scriptName),
     path.join(process.resourcesPath, "resources", scriptName)
@@ -136,7 +148,13 @@ function runConversionScript(inputDir, outputDir, mode) {
     throw new Error(`未找到脚本: ${scriptPath}`);
   }
 
+  const materialProfile = materialProfileForMode(mode);
   const envVars = { ...process.env };
+  if (materialProfile === "lit") {
+    envVars.FBX2GLB_MATERIAL_PROFILE = "lit";
+  } else {
+    delete envVars.FBX2GLB_MATERIAL_PROFILE;
+  }
   if (useBundledResources) {
     const binDir = getBundledBinDir();
     if (!binDir) {
@@ -260,7 +278,7 @@ function runConversionScript(inputDir, outputDir, mode) {
       });
     }
 
-    async function convertFbxToGlbCompress() {
+    async function convertFbxToGlbCompress(profile) {
       const tempRoot = path.join(
         os.tmpdir(),
         `fbx2glb_tmp_${Date.now()}_${Math.random().toString(16).slice(2)}`
@@ -272,6 +290,9 @@ function runConversionScript(inputDir, outputDir, mode) {
       let failedCompress = 0;
 
       let merged = debugHeader + "\n";
+      if (profile === "lit") {
+        merged += "材质策略: 场景受光 (lit)\n";
+      }
 
       const fbxFiles = await listFilesRecursive(inputDir, (p) => {
         const lower = p.toLowerCase();
@@ -311,7 +332,7 @@ function runConversionScript(inputDir, outputDir, mode) {
             continue;
           }
           try {
-            fixGlbFile(tmpOutFile, tmpOutFile);
+            fixGlbFile(tmpOutFile, tmpOutFile, { materialProfile: profile });
           } catch (fixErr) {
             merged += `  材质修补警告: ${fixErr.message}\n`;
           }
@@ -407,8 +428,8 @@ function runConversionScript(inputDir, outputDir, mode) {
       throw new Error("glb_draco_only 未实现（需要在 Node 侧接 gltf-pipeline 参数逻辑）");
     }
 
-    if (mode === "fbx_to_glb_compress") {
-      return convertFbxToGlbCompress();
+    if (isFbxToGlbCompressMode(mode)) {
+      return convertFbxToGlbCompress(materialProfile);
     }
     if (mode === "glb_compress_only") {
       return compressGlbOnly();
@@ -468,7 +489,12 @@ ipcMain.handle("pick-directory", async () => {
 ipcMain.handle("run-conversion", async (_event, payload) => {
   const inputDir = stripEnclosingQuotes(payload?.inputDir || "");
   const outputDir = stripEnclosingQuotes(payload?.outputDir || "");
-  const allowedModes = new Set(["fbx_to_glb_compress", "glb_compress_only", "glb_draco_only"]);
+  const allowedModes = new Set([
+    "fbx_to_glb_compress",
+    "fbx_to_glb_compress_lit",
+    "glb_compress_only",
+    "glb_draco_only"
+  ]);
   const mode = allowedModes.has(payload?.mode) ? payload.mode : "fbx_to_glb_compress";
 
   if (!inputDir || !outputDir) {
