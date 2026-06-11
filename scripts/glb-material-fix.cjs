@@ -8,10 +8,13 @@
  * - 标志纯色 baseColorFactor：sRGB→linear（fbx2gltf 常把 Phong diffuse 当 linear 写入，蓝/绿会偏浅偏青）
  * - 玻璃类材质：baseColor alpha < 1 时补 alphaMode=BLEND
  * - 车灯 emissive 材质：补 baseColor、doubleSided，并排到场景末尾优先绘制
+ * - materialProfile=lit：不加 unlit，剥离已有 unlit，材质受场景光（default 行为不变）
  */
 const fs = require("fs");
 const path = require("path");
 const { isTgaBuffer, tgaHasAlpha, tgaToPng } = require("./tga-png.cjs");
+
+const MATERIAL_PROFILES = new Set(["default", "lit"]);
 
 const GLB_MAGIC = 0x46546c67;
 const GLB_JSON_CHUNK = 0x4e4f534a;
@@ -215,6 +218,64 @@ function patchUnlitMaterial(mat, signSolidCount) {
   return 1;
 }
 
+/** 解析材质策略：default=现有标志牌 unlit 逻辑；lit=场景受光 */
+function normalizeMaterialProfile(opts) {
+  const fromOpts = opts?.materialProfile;
+  if (fromOpts && MATERIAL_PROFILES.has(fromOpts)) {
+    return fromOpts;
+  }
+  const fromEnv = process.env.FBX2GLB_MATERIAL_PROFILE;
+  if (fromEnv && MATERIAL_PROFILES.has(fromEnv)) {
+    return fromEnv;
+  }
+  return "default";
+}
+
+/** lit：去掉 KHR_materials_unlit，使 MeshStandardMaterial 受光 */
+function stripUnlitMaterial(mat) {
+  if (!mat.extensions?.KHR_materials_unlit) {
+    return 0;
+  }
+  delete mat.extensions.KHR_materials_unlit;
+  if (Object.keys(mat.extensions).length === 0) {
+    delete mat.extensions;
+  }
+  return 1;
+}
+
+function cleanupUnlitExtension(json) {
+  const materials = json.materials || [];
+  const stillHasUnlit = materials.some((mat) => mat.extensions?.KHR_materials_unlit);
+  if (stillHasUnlit || !Array.isArray(json.extensionsUsed)) {
+    return 0;
+  }
+  const idx = json.extensionsUsed.indexOf("KHR_materials_unlit");
+  if (idx < 0) {
+    return 0;
+  }
+  json.extensionsUsed.splice(idx, 1);
+  if (json.extensionsUsed.length === 0) {
+    delete json.extensionsUsed;
+  }
+  return 1;
+}
+
+/** lit：无 baseColor、无贴图时补白，避免受光材质全黑 */
+function ensureDefaultBaseColor(mat) {
+  if (isLightMaterial(mat)) {
+    return 0;
+  }
+  const pbr = mat.pbrMetallicRoughness;
+  if (!pbr || pbr.baseColorTexture) {
+    return 0;
+  }
+  if (pbr.baseColorFactor) {
+    return 0;
+  }
+  pbr.baseColorFactor = [1, 1, 1, 1];
+  return 1;
+}
+
 function isLightBranch(node, nodes) {
   const name = node.name || "";
   if (LIGHT_NAME_RE.test(name)) {
@@ -347,7 +408,8 @@ function convertTgaImages(json, bin) {
   };
 }
 
-function patchMaterials(json, convertedAlphaImages) {
+function patchMaterials(json, convertedAlphaImages, opts = {}) {
+  const profile = normalizeMaterialProfile(opts);
   const materials = json.materials || [];
   let changed = 0;
   let unlitAdded = false;
@@ -409,13 +471,18 @@ function patchMaterials(json, convertedAlphaImages) {
       changed += patchBaseColorSrgbToLinear(mat);
     }
 
-    if (patchUnlitMaterial(mat, signSolidCount)) {
+    if (profile === "lit") {
+      changed += stripUnlitMaterial(mat);
+      changed += ensureDefaultBaseColor(mat);
+    } else if (patchUnlitMaterial(mat, signSolidCount)) {
       unlitAdded = true;
       changed += 1;
     }
   }
 
-  if (unlitAdded) {
+  if (profile === "lit") {
+    changed += cleanupUnlitExtension(json);
+  } else if (unlitAdded) {
     ensureUnlitExtension(json);
   }
 
@@ -453,24 +520,52 @@ function writeGlb(outPath, json, bin) {
   fs.writeFileSync(outPath, out);
 }
 
-function fixGlbFile(inputPath, outputPath) {
+function fixGlbFile(inputPath, outputPath, opts = {}) {
   const { json, bin } = readGlb(inputPath);
   const { bin: patchedBin, convertedImageIndices, changed: tgaChanges } = convertTgaImages(
     json,
     bin
   );
-  const materialChanges = patchMaterials(json, convertedImageIndices);
+  const materialChanges = patchMaterials(json, convertedImageIndices, opts);
   const sceneChanges = reorderLightNodes(json);
   writeGlb(outputPath, json, patchedBin);
   return tgaChanges + materialChanges + sceneChanges;
 }
 
+function parseCliArgs(argv) {
+  const positional = [];
+  let materialProfile = normalizeMaterialProfile({});
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--profile" && argv[i + 1]) {
+      const next = argv[i + 1];
+      if (MATERIAL_PROFILES.has(next)) {
+        materialProfile = next;
+      }
+      i += 1;
+      continue;
+    }
+    positional.push(arg);
+  }
+
+  return {
+    inputPath: positional[0],
+    outputPath: positional[1],
+    materialProfile
+  };
+}
+
 function main() {
-  const inputPath = process.argv[2];
-  const outputPath = process.argv[3] || inputPath;
+  const { inputPath, outputPath: cliOutputPath, materialProfile } = parseCliArgs(
+    process.argv.slice(2)
+  );
+  const outputPath = cliOutputPath || inputPath;
 
   if (!inputPath) {
-    console.error("Usage: node glb-material-fix.cjs <input.glb> [output.glb]");
+    console.error(
+      "Usage: node glb-material-fix.cjs <input.glb> [output.glb] [--profile default|lit]"
+    );
     process.exit(1);
   }
 
@@ -484,7 +579,7 @@ function main() {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  const changed = fixGlbFile(inputPath, outputPath);
+  const changed = fixGlbFile(inputPath, outputPath, { materialProfile });
   if (changed > 0) {
     console.log(`已修补 ${changed} 项: ${path.basename(inputPath)}`);
   }
@@ -496,7 +591,9 @@ module.exports = {
   reorderLightNodes,
   convertTgaImages,
   srgbFactorToLinear,
-  patchBaseColorSrgbToLinear
+  patchBaseColorSrgbToLinear,
+  normalizeMaterialProfile,
+  MATERIAL_PROFILES
 };
 
 if (require.main === module) {

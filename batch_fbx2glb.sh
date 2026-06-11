@@ -31,6 +31,12 @@ OUTPUT_FOLDER=$(cd "$OUTPUT_FOLDER" && pwd)
 count=0
 failed=0
 
+GLB_FIX_EXTRA_ARGS=()
+if [ "${FBX2GLB_MATERIAL_PROFILE:-}" = "lit" ]; then
+  GLB_FIX_EXTRA_ARGS=(--profile lit)
+  echo "材质策略: 场景受光 (lit)"
+fi
+
 # 递归查找所有 .fbx 和 .FBX 文件（排除 __MACOSX 和 ._ 开头的 Mac 元数据）
 while IFS= read -r -d '' f; do
     rel_path="${f#$INPUT_FOLDER/}"
@@ -48,7 +54,7 @@ while IFS= read -r -d '' f; do
     # 捕获 fbx2gltf 输出，失败时打印，方便非技术用户排查
     if fbx_out="$(fbx2gltf -i "$f" -o "$out_file" --pbr-metallic-roughness 2>&1)"; then
         if [ -f "$GLB_FIX_SCRIPT" ]; then
-            node "$GLB_FIX_SCRIPT" "$out_file" "$out_file" >/dev/null 2>&1 || true
+            node "$GLB_FIX_SCRIPT" "$out_file" "$out_file" "${GLB_FIX_EXTRA_ARGS[@]}" >/dev/null 2>&1 || true
         fi
         ((count++))
     else

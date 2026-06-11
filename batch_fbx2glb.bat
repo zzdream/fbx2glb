@@ -31,6 +31,11 @@ if not exist "%OUTPUT_FOLDER%" mkdir "%OUTPUT_FOLDER%"
 set /a count=0
 set /a failed=0
 set "LOG_FILE=%TEMP%\fbx2gltf_cmd_%RANDOM%_%RANDOM%.log"
+set "GLB_FIX_PROFILE_ARG="
+if /I "%FBX2GLB_MATERIAL_PROFILE%"=="lit" (
+  set "GLB_FIX_PROFILE_ARG=--profile lit"
+  echo 材质策略: 场景受光 (lit)
+)
 
 for /R "%INPUT_FOLDER%" %%F in (*.fbx *.FBX) do (
   set "FULL=%%~fF"
@@ -59,9 +64,9 @@ for /R "%INPUT_FOLDER%" %%F in (*.fbx *.FBX) do (
         type "!LOG_FILE!"
       ) else (
         if exist "%~dp0scripts\glb-material-fix.cjs" (
-          node "%~dp0scripts\glb-material-fix.cjs" "!OUT_FILE!" "!OUT_FILE!" >nul 2>&1
+          node "%~dp0scripts\glb-material-fix.cjs" "!OUT_FILE!" "!OUT_FILE!" !GLB_FIX_PROFILE_ARG! >nul 2>&1
         ) else if exist "%~dp0..\scripts\glb-material-fix.cjs" (
-          node "%~dp0..\scripts\glb-material-fix.cjs" "!OUT_FILE!" "!OUT_FILE!" >nul 2>&1
+          node "%~dp0..\scripts\glb-material-fix.cjs" "!OUT_FILE!" "!OUT_FILE!" !GLB_FIX_PROFILE_ARG! >nul 2>&1
         )
         set /a count+=1
       )

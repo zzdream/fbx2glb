@@ -35,6 +35,12 @@ export function setupConversionActions({
     if (selectedMode === "glb_compress_only" || selectedMode === "glb_draco_only") {
       inputLabelEl.textContent = "输入目录（GLB）";
       inputEl.placeholder = "请选择输入目录（包含 .glb 文件）";
+    } else if (
+      selectedMode === "fbx_to_glb_compress" ||
+      selectedMode === "fbx_to_glb_compress_lit"
+    ) {
+      inputLabelEl.textContent = "输入目录（FBX）";
+      inputEl.placeholder = "请选择输入目录";
     } else {
       inputLabelEl.textContent = "输入目录（FBX）";
       inputEl.placeholder = "请选择输入目录";
@@ -83,8 +89,10 @@ export function setupConversionActions({
       appendLog("开始执行压缩任务（GLB -> 压缩 GLB，gltfpack）...");
     } else if (selectedMode === "glb_draco_only") {
       appendLog("开始执行压缩任务（GLB -> Draco 压缩 GLB）...");
+    } else if (selectedMode === "fbx_to_glb_compress_lit") {
+      appendLog("开始执行转换任务（FBX -> GLB -> 压缩，场景受光）...");
     } else {
-      appendLog("开始执行转换任务（FBX -> GLB -> 压缩）...");
+      appendLog("开始执行转换任务（FBX -> GLB -> 压缩，标志牌优化）...");
     }
 
     try {

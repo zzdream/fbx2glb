@@ -47,6 +47,7 @@ fn run_unix_script(
     let script_name = match mode {
         "glb_compress_only" => "batch_gltfpack.sh",
         "glb_draco_only" => "batch_gltf_pipeline_draco.sh",
+        "fbx_to_glb_compress" | "fbx_to_glb_compress_lit" => "batch_fbx2glb_final.sh",
         _ => "batch_fbx2glb_final.sh",
     };
 
@@ -93,13 +94,17 @@ fn run_unix_script(
         env::set_var("PATH", new_path);
     }
 
-    let output = Command::new("bash")
-        .arg(script_path.to_string_lossy().to_string())
+    let mut cmd = Command::new("bash");
+    cmd.arg(script_path.to_string_lossy().to_string())
         .arg(input_dir)
         .arg(output_dir)
-        .current_dir(script_path.parent().unwrap_or_else(|| std::path::Path::new(".")))
-        .output()
-        .map_err(|e| format!("执行脚本失败: {e}"))?;
+        .current_dir(script_path.parent().unwrap_or_else(|| std::path::Path::new(".")));
+    if mode == "fbx_to_glb_compress_lit" {
+        cmd.env("FBX2GLB_MATERIAL_PROFILE", "lit");
+    } else {
+        cmd.env_remove("FBX2GLB_MATERIAL_PROFILE");
+    }
+    let output = cmd.output().map_err(|e| format!("执行脚本失败: {e}"))?;
 
     let mut merged = String::new();
     merged.push_str(&String::from_utf8_lossy(&output.stdout));
