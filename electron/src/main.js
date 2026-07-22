@@ -5,6 +5,8 @@ import { ModelPreviewer } from "./modules/modelPreviewer.js";
 const inputEl = document.querySelector("#inputDir");
 const outputEl = document.querySelector("#outputDir");
 const modeInputs = document.querySelectorAll('input[name="convertMode"]');
+const siInputEl = document.querySelector("#siInput");
+const optionsCardEl = document.querySelector("#gltfpackOptionsCard");
 const logEl = document.querySelector("#log");
 const pickInputBtn = document.querySelector("#pickInputBtn");
 const pickOutputBtn = document.querySelector("#pickOutputBtn");
@@ -30,6 +32,8 @@ setupConversionActions({
   inputEl,
   outputEl,
   modeInputs,
+  siInputEl,
+  optionsCardEl,
   logEl,
   pickInputBtn,
   pickOutputBtn,

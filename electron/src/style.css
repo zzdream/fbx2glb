@@ -27,6 +27,19 @@ h1 {
   color: #4b5563;
 }
 
+.hint {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+#siInput {
+  max-width: 160px;
+  flex: 0 0 160px;
+}
+
 .card {
   background: #ffffff;
   border: 1px solid #e5e7eb;

@@ -106,6 +106,19 @@ function materialProfileForMode(mode) {
   return mode === "fbx_to_glb_compress_lit" ? "lit" : "default";
 }
 
+/** 规范化 gltfpack -si：合法范围 (0, 1]，默认 1 */
+function normalizeGltfpackSi(value) {
+  const n = typeof value === "number" ? value : Number.parseFloat(String(value ?? "1"));
+  if (!Number.isFinite(n) || n <= 0 || n > 1) {
+    return 1;
+  }
+  return Math.round(n * 100) / 100;
+}
+
+function gltfpackArgs(inputFile, outputFile, si) {
+  return ["-i", inputFile, "-o", outputFile, "-cc", "-tc", "-si", String(si), "-kn", "-km"];
+}
+
 function resolveScriptPath(mode) {
   const scriptName =
     process.platform === "win32"
@@ -141,8 +154,9 @@ function resolveScriptPath(mode) {
   };
 }
 
-function runConversionScript(inputDir, outputDir, mode) {
+function runConversionScript(inputDir, outputDir, mode, options = {}) {
   const { scriptPath, useBundledResources } = resolveScriptPath(mode);
+  const si = normalizeGltfpackSi(options.si);
 
   if (!fs.existsSync(scriptPath)) {
     throw new Error(`未找到脚本: ${scriptPath}`);
@@ -150,6 +164,7 @@ function runConversionScript(inputDir, outputDir, mode) {
 
   const materialProfile = materialProfileForMode(mode);
   const envVars = { ...process.env };
+  envVars.FBX2GLB_GLTFPACK_SI = String(si);
   if (materialProfile === "lit") {
     envVars.FBX2GLB_MATERIAL_PROFILE = "lit";
   } else {
@@ -293,6 +308,7 @@ function runConversionScript(inputDir, outputDir, mode) {
       if (profile === "lit") {
         merged += "材质策略: 场景受光 (lit)\n";
       }
+      merged += `gltfpack 参数: -cc -tc -si ${si} -kn -km\n`;
 
       const fbxFiles = await listFilesRecursive(inputDir, (p) => {
         const lower = p.toLowerCase();
@@ -341,18 +357,10 @@ function runConversionScript(inputDir, outputDir, mode) {
           const finalOutDir = tmpOutDir === tempRoot ? outputDir : path.join(outputDir, path.relative(tempRoot, tmpOutDir));
           await fs.promises.mkdir(finalOutDir, { recursive: true });
           merged += `Compressing: ${rel} -> ${path.relative(outputDir, path.join(finalOutDir, path.basename(tmpOutFile)))}\n`;
-          const { code: cCode, stdout: cStdout, stderr: cStderr } = await runExe(gltfpackExe, [
-            "-i",
-            tmpOutFile,
-            "-o",
-            path.join(finalOutDir, path.basename(tmpOutFile)),
-            "-cc",
-            "-tc",
-            "-si",
-            "1",
-            "-kn",
-            "-km"
-          ]);
+          const { code: cCode, stdout: cStdout, stderr: cStderr } = await runExe(
+            gltfpackExe,
+            gltfpackArgs(tmpOutFile, path.join(finalOutDir, path.basename(tmpOutFile)), si)
+          );
           if (cCode !== 0) {
             failedCompress++;
             merged += `  ^^ 失败 (gltfpack exit code ${cCode})\n`;
@@ -378,6 +386,7 @@ function runConversionScript(inputDir, outputDir, mode) {
 
     async function compressGlbOnly() {
       let merged = debugHeader + "\n";
+      merged += `gltfpack 参数: -cc -tc -si ${si} -kn -km\n`;
       let compressed = 0;
       let failedCompress = 0;
 
@@ -394,18 +403,7 @@ function runConversionScript(inputDir, outputDir, mode) {
         await fs.promises.mkdir(outDir, { recursive: true });
 
         merged += `Compressing: ${rel} -> ${path.relative(outputDir, outFile)}\n`;
-        const { code, stdout, stderr } = await runExe(gltfpackExe, [
-          "-i",
-          glbPath,
-          "-o",
-          outFile,
-          "-cc",
-          "-tc",
-          "-si",
-          "1",
-          "-kn",
-          "-km"
-        ]);
+        const { code, stdout, stderr } = await runExe(gltfpackExe, gltfpackArgs(glbPath, outFile, si));
         if (code !== 0) {
           failedCompress++;
           merged += `  ^^ 失败 (gltfpack exit code ${code})\n`;
@@ -496,12 +494,15 @@ ipcMain.handle("run-conversion", async (_event, payload) => {
     "glb_draco_only"
   ]);
   const mode = allowedModes.has(payload?.mode) ? payload.mode : "fbx_to_glb_compress";
+  const options = {
+    si: normalizeGltfpackSi(payload?.options?.si)
+  };
 
   if (!inputDir || !outputDir) {
     throw new Error("输入和输出目录不能为空");
   }
 
-  return runConversionScript(inputDir, outputDir, mode);
+  return runConversionScript(inputDir, outputDir, mode, options);
 });
 
 app.whenReady().then(() => {

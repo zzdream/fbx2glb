@@ -2,11 +2,14 @@
 
 INPUT_FOLDER="$1"
 OUTPUT_FOLDER="$2"
+# 可由环境变量 FBX2GLB_GLTFPACK_SI 覆盖，默认 1（不减面）
+SI="${FBX2GLB_GLTFPACK_SI:-1}"
 
 if [ -z "$INPUT_FOLDER" ] || [ -z "$OUTPUT_FOLDER" ]; then
     echo "Usage: ./batch_gltfpack.sh /path/to/glb /path/to/output"
     echo "支持递归子目录，保留目录结构"
-    echo "参数: -cc mesh压缩 -tc 贴图压缩 -si 1 -kn -km 保留车灯网格"
+    echo "参数: -cc mesh压缩 -tc 贴图压缩 -si <值> -kn -km 保留车灯网格"
+    echo "可通过环境变量 FBX2GLB_GLTFPACK_SI 设置 -si（当前: $SI）"
     exit 1
 fi
 
@@ -21,9 +24,17 @@ if ! command -v gltfpack &>/dev/null; then
     exit 1
 fi
 
+# 简单校验 SI：非空且能当作数字用；非法则回退 1
+if ! awk -v s="$SI" 'BEGIN { exit !(s+0 > 0 && s+0 <= 1) }'; then
+    echo "Warning: FBX2GLB_GLTFPACK_SI='$SI' 非法，回退为 1"
+    SI=1
+fi
+
 INPUT_FOLDER=$(cd "$INPUT_FOLDER" && pwd)
 mkdir -p "$OUTPUT_FOLDER"
 OUTPUT_FOLDER=$(cd "$OUTPUT_FOLDER" && pwd)
+
+echo "gltfpack 参数: -cc -tc -si $SI -kn -km"
 
 count=0
 failed=0
@@ -40,7 +51,7 @@ while IFS= read -r -d '' f; do
     mkdir -p "$out_dir"
     echo "Compressing: $rel_path -> $rel_dir/$filename.glb"
     # 捕获 gltfpack 输出，失败时打印，方便排查
-     if gltf_out="$(gltfpack -i "$f" -o "$out_file" -cc -tc -si 1 -kn -km 2>&1)"; then
+     if gltf_out="$(gltfpack -i "$f" -o "$out_file" -cc -tc -si "$SI" -kn -km 2>&1)"; then
         ((count++))
     else
         ((failed++))
@@ -52,4 +63,4 @@ done < <(find "$INPUT_FOLDER" -type f \( -iname "*.glb" \) -not -path "*/__MACOS
 echo ""
 echo "完成: 成功 $count 个, 失败 $failed 个"
 # 示例: ./batch_gltfpack.sh /path/to/models /path/to/models_compressed
-
+# 示例: FBX2GLB_GLTFPACK_SI=0.5 ./batch_gltfpack.sh /path/to/models /path/to/models_compressed
