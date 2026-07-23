@@ -16,6 +16,13 @@ const WINDOWS_BIN_DIR = "bin-win-x64";
 
 const isDev = !app.isPackaged;
 const appDir = __dirname;
+const APP_NAME = "FBX2GLB";
+
+// 开发态 Dock/菜单栏默认是 “Electron”，需显式覆盖
+app.setName(APP_NAME);
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.easylink.fbxglb.electron");
+}
 
 function resolveWindowsCmdExe() {
   const comspec = process.env.ComSpec || process.env.COMSPEC;
@@ -46,6 +53,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 980,
     height: 760,
+    icon: path.join(appDir, "icons", "icon.png"),
     webPreferences: {
       preload: path.join(appDir, "preload.cjs"),
       contextIsolation: true,
@@ -506,6 +514,9 @@ ipcMain.handle("run-conversion", async (_event, payload) => {
 });
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin" && app.dock) {
+    app.dock.setIcon(path.join(appDir, "icons", "icon.png"));
+  }
   createWindow();
 
   app.on("activate", () => {

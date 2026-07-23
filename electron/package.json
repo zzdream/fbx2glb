@@ -1,30 +1,35 @@
 {
   "name": "fbx-glb-electron-app",
+  "productName": "FBX2GLB",
   "private": true,
   "version": "0.1.0",
   "description": "FBX -> GLB converter desktop app built with Electron",
   "main": "main.cjs",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on tcp:1421 && env -u ELECTRON_RUN_AS_NODE electron .\"",
+    "postinstall": "node scripts/set-electron-dev-name.cjs",
+    "dev": "node scripts/set-electron-dev-name.cjs && concurrently -k \"vite\" \"wait-on tcp:1421 && env -u ELECTRON_RUN_AS_NODE electron .\"",
     "dev:web": "vite",
-    "dev:electron": "wait-on tcp:1421 && env -u ELECTRON_RUN_AS_NODE electron .",
+    "dev:electron": "node scripts/set-electron-dev-name.cjs && wait-on tcp:1421 && env -u ELECTRON_RUN_AS_NODE electron .",
     "build:electron": "vite build --mode electron",
-    "build:mac": "rm -rf build/* && pnpm run build:electron && electron-builder --mac --arm64 --x64",
-    "build:linux": "pnpm run build:electron && ELECTRON_CACHE=~/.cache/electron ELECTRON_SKIP_DOWNLOAD=true electron-builder --linux --x64",
-    "build:win": "pnpm run build:electron && ELECTRON_CACHE=~/.cache/electron ELECTRON_SKIP_DOWNLOAD=true electron-builder --windows --x64",
-    "start": "env -u ELECTRON_RUN_AS_NODE electron ."
+    "build:mac": "node scripts/restore-electron-app-name.cjs && rm -rf build/* && pnpm run build:electron && electron-builder --mac --arm64 --x64",
+    "build:linux": "node scripts/restore-electron-app-name.cjs && pnpm run build:electron && ELECTRON_CACHE=~/.cache/electron ELECTRON_SKIP_DOWNLOAD=true electron-builder --linux --x64",
+    "build:win": "node scripts/restore-electron-app-name.cjs && pnpm run build:electron && ELECTRON_CACHE=~/.cache/electron ELECTRON_SKIP_DOWNLOAD=true electron-builder --windows --x64",
+    "start": "node scripts/set-electron-dev-name.cjs && env -u ELECTRON_RUN_AS_NODE electron ."
   },
   "build": {
     "appId": "com.easylink.fbxglb.electron",
     "productName": "FBX2GLB",
     "directories": {
-      "output": "build"
+      "output": "build",
+      "buildResources": "icons"
     },
+    "icon": "icons/icon",
     "files": [
       "dist/**/*",
       "main.cjs",
       "preload.cjs",
-      "package.json"
+      "package.json",
+      "icons/icon.png"
     ],
     "extraResources": [
       {
